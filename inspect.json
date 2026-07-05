@@ -1,0 +1,319 @@
+[
+     {
+          "Id": "36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42",
+          "Created": "2026-07-05T08:01:03.84724829-07:00",
+          "Path": "uvicorn",
+          "Args": [
+               "app.main:app",
+               "--host",
+               "0.0.0.0",
+               "--port",
+               "5006"
+          ],
+          "State": {
+               "OciVersion": "1.2.1",
+               "Status": "running",
+               "Running": true,
+               "Paused": false,
+               "Restarting": false,
+               "OOMKilled": false,
+               "Dead": false,
+               "Pid": 1964332,
+               "ConmonPid": 1964330,
+               "ExitCode": 0,
+               "Error": "",
+               "StartedAt": "2026-07-05T08:01:03.916397415-07:00",
+               "FinishedAt": "0001-01-01T00:00:00Z",
+               "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/app.slice/newscurator.service/libpod-payload-36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42",
+               "CheckpointedAt": "0001-01-01T00:00:00Z",
+               "RestoredAt": "0001-01-01T00:00:00Z"
+          },
+          "Image": "1db05c5f51b17cc561f9f0bed7a3315e38d2c9f56813dd07d1f7c87670908d8e",
+          "ImageDigest": "sha256:347b6c02a58b0b784397719b4e1e7794e7fe0d97dd2aa0b215ac9f6f0d0af887",
+          "ImageName": "localhost/newscurator:latest",
+          "Rootfs": "",
+          "Pod": "",
+          "ResolvConfPath": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/resolv.conf",
+          "HostnamePath": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/hostname",
+          "HostsPath": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/hosts",
+          "StaticDir": "/home/jmc/.local/share/containers/storage/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata",
+          "OCIConfigPath": "/home/jmc/.local/share/containers/storage/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/config.json",
+          "OCIRuntime": "crun",
+          "ConmonPidFile": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/conmon.pid",
+          "PidFile": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/pidfile",
+          "Name": "newscurator",
+          "RestartCount": 0,
+          "Driver": "overlay",
+          "MountLabel": "",
+          "ProcessLabel": "",
+          "AppArmorProfile": "",
+          "EffectiveCaps": [
+               "CAP_CHOWN",
+               "CAP_DAC_OVERRIDE",
+               "CAP_FOWNER",
+               "CAP_FSETID",
+               "CAP_KILL",
+               "CAP_NET_BIND_SERVICE",
+               "CAP_SETFCAP",
+               "CAP_SETGID",
+               "CAP_SETPCAP",
+               "CAP_SETUID",
+               "CAP_SYS_CHROOT"
+          ],
+          "BoundingCaps": [
+               "CAP_CHOWN",
+               "CAP_DAC_OVERRIDE",
+               "CAP_FOWNER",
+               "CAP_FSETID",
+               "CAP_KILL",
+               "CAP_NET_BIND_SERVICE",
+               "CAP_SETFCAP",
+               "CAP_SETGID",
+               "CAP_SETPCAP",
+               "CAP_SETUID",
+               "CAP_SYS_CHROOT"
+          ],
+          "ExecIDs": [],
+          "GraphDriver": {
+               "Name": "overlay",
+               "Data": {
+                    "LowerDir": "/home/jmc/.local/share/containers/storage/overlay/047ae9387fbe756637399bec6d95141135494d19f17929d04c3dc0dec95d904f/diff:/home/jmc/.local/share/containers/storage/overlay/daf55a08d314272f6408619de621cd473015a6cc08af17664f148e5459a906f4/diff:/home/jmc/.local/share/containers/storage/overlay/9f4327c8444258915b43e5e26dea834bd1cc2965fd8d9deb752c7d2ac9a4a4ac/diff:/home/jmc/.local/share/containers/storage/overlay/5869b93c1feb80e3bd828025b9f820b8c8efcfdb2cae8989d7302cec1a642421/diff:/home/jmc/.local/share/containers/storage/overlay/336a2df4b2e67a7c9245520d94a10d5a9ad2c3b93a8c0fcce8703e48a4cce985/diff:/home/jmc/.local/share/containers/storage/overlay/8ab43e5fc847fd5cad9f96b234b5aaa54d79c6c63e5b030568c07591cc531496/diff:/home/jmc/.local/share/containers/storage/overlay/fd329bc2d0a880034b3b46a77deeaea0a795e6cd147e1f3d10a7d004fcb4e326/diff:/home/jmc/.local/share/containers/storage/overlay/b635440a4cf75bd5c1984893f3dc09ef6e708f37fa541a240e2eaea446987e42/diff:/home/jmc/.local/share/containers/storage/overlay/3edb2192497af6e965b9b7e57dc6dbdce1f3ea721d14a98110419d4ded523298/diff",
+                    "MergedDir": "/home/jmc/.local/share/containers/storage/overlay/50927ca1ab3096088dbaf67d1080177ad69eafa61d490929a4bc30cae5d35599/merged",
+                    "UpperDir": "/home/jmc/.local/share/containers/storage/overlay/50927ca1ab3096088dbaf67d1080177ad69eafa61d490929a4bc30cae5d35599/diff",
+                    "WorkDir": "/home/jmc/.local/share/containers/storage/overlay/50927ca1ab3096088dbaf67d1080177ad69eafa61d490929a4bc30cae5d35599/work"
+               }
+          },
+          "Mounts": [
+               {
+                    "Type": "bind",
+                    "Source": "/home/jmc/Source/newscurator-data",
+                    "Destination": "/app/data",
+                    "Driver": "",
+                    "Mode": "",
+                    "Options": [
+                         "rbind"
+                    ],
+                    "RW": true,
+                    "Propagation": "rprivate"
+               }
+          ],
+          "Dependencies": [],
+          "NetworkSettings": {
+               "EndpointID": "",
+               "Gateway": "",
+               "IPAddress": "",
+               "IPPrefixLen": 0,
+               "IPv6Gateway": "",
+               "GlobalIPv6Address": "",
+               "GlobalIPv6PrefixLen": 0,
+               "MacAddress": "",
+               "Bridge": "",
+               "SandboxID": "",
+               "HairpinMode": false,
+               "LinkLocalIPv6Address": "",
+               "LinkLocalIPv6PrefixLen": 0,
+               "Ports": {
+                    "5006/tcp": [
+                         {
+                              "HostIp": "0.0.0.0",
+                              "HostPort": "5006"
+                         }
+                    ]
+               },
+               "SandboxKey": "/run/user/1000/netns/netns-6c57af16-caa3-b579-0bf4-077017481486"
+          },
+          "Namespace": "",
+          "IsInfra": false,
+          "IsService": false,
+          "KubeExitCodePropagation": "invalid",
+          "lockNumber": 1,
+          "Config": {
+               "Hostname": "36509a237402",
+               "Domainname": "",
+               "User": "",
+               "AttachStdin": false,
+               "AttachStdout": false,
+               "AttachStderr": false,
+               "Tty": false,
+               "OpenStdin": false,
+               "StdinOnce": false,
+               "Env": [
+                    "PYTHON_VERSION=3.12.13",
+                    "PYTHON_SHA256=c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684",
+                    "LANG=C.UTF-8",
+                    "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+                    "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                    "container=podman",
+                    "HOME=/root",
+                    "HOSTNAME=36509a237402"
+               ],
+               "Cmd": [
+                    "uvicorn",
+                    "app.main:app",
+                    "--host",
+                    "0.0.0.0",
+                    "--port",
+                    "5006"
+               ],
+               "Image": "localhost/newscurator:latest",
+               "Volumes": null,
+               "WorkingDir": "/app",
+               "Entrypoint": null,
+               "OnBuild": null,
+               "Labels": {
+                    "PODMAN_SYSTEMD_UNIT": "newscurator.service",
+                    "io.buildah.version": "1.43.1",
+                    "io.containers.autoupdate": "local"
+               },
+               "Annotations": {
+                    "io.container.manager": "libpod",
+                    "io.podman.annotations.autoremove": "TRUE",
+                    "org.opencontainers.image.stopSignal": "15",
+                    "org.systemd.property.KillSignal": "15",
+                    "org.systemd.property.TimeoutStopUSec": "uint64 10000000"
+               },
+               "StopSignal": "SIGTERM",
+               "HealthcheckOnFailureAction": "none",
+               "HealthLogDestination": "local",
+               "HealthcheckMaxLogCount": 5,
+               "HealthcheckMaxLogSize": 500,
+               "CreateCommand": [
+                    "/usr/bin/podman",
+                    "run",
+                    "--name",
+                    "newscurator",
+                    "--replace",
+                    "--rm",
+                    "--cgroups=split",
+                    "--sdnotify=conmon",
+                    "-d",
+                    "-v",
+                    "/home/jmc/Source/newscurator-data:/app/data:Z",
+                    "--label",
+                    "io.containers.autoupdate=local",
+                    "--publish",
+                    "5006:5006",
+                    "localhost/newscurator:latest"
+               ],
+               "Umask": "0022",
+               "Timeout": 0,
+               "StopTimeout": 10,
+               "Passwd": true,
+               "sdNotifyMode": "conmon",
+               "sdNotifySocket": "/run/user/1000/systemd/notify",
+               "ExposedPorts": {
+                    "5006/tcp": {}
+               }
+          },
+          "HostConfig": {
+               "Binds": [
+                    "/home/jmc/Source/newscurator-data:/app/data:rprivate,rbind"
+               ],
+               "CgroupManager": "systemd",
+               "CgroupMode": "private",
+               "ContainerIDFile": "",
+               "LogConfig": {
+                    "Type": "journald",
+                    "Config": null,
+                    "Path": "",
+                    "Tag": "",
+                    "Size": "-1B"
+               },
+               "NetworkMode": "pasta",
+               "PortBindings": {
+                    "5006/tcp": [
+                         {
+                              "HostIp": "0.0.0.0",
+                              "HostPort": "5006"
+                         }
+                    ]
+               },
+               "RestartPolicy": {
+                    "Name": "no",
+                    "MaximumRetryCount": 0
+               },
+               "AutoRemove": true,
+               "AutoRemoveImage": false,
+               "Annotations": {
+                    "io.container.manager": "libpod",
+                    "io.podman.annotations.autoremove": "TRUE",
+                    "org.opencontainers.image.stopSignal": "15",
+                    "org.systemd.property.KillSignal": "15",
+                    "org.systemd.property.TimeoutStopUSec": "uint64 10000000"
+               },
+               "VolumeDriver": "",
+               "VolumesFrom": null,
+               "CapAdd": [],
+               "CapDrop": [],
+               "Dns": [],
+               "DnsOptions": [],
+               "DnsSearch": [],
+               "ExtraHosts": [],
+               "HostsFile": "",
+               "GroupAdd": [],
+               "IpcMode": "shareable",
+               "Cgroup": "",
+               "Cgroups": "default",
+               "Links": null,
+               "OomScoreAdj": 0,
+               "PidMode": "private",
+               "Privileged": false,
+               "PublishAllPorts": false,
+               "ReadonlyRootfs": false,
+               "SecurityOpt": [],
+               "Tmpfs": {},
+               "UTSMode": "private",
+               "UsernsMode": "",
+               "ShmSize": 65536000,
+               "Runtime": "oci",
+               "ConsoleSize": [
+                    0,
+                    0
+               ],
+               "Isolation": "",
+               "CpuShares": 0,
+               "Memory": 0,
+               "NanoCpus": 0,
+               "CgroupParent": "",
+               "BlkioWeight": 0,
+               "BlkioWeightDevice": null,
+               "BlkioDeviceReadBps": null,
+               "BlkioDeviceWriteBps": null,
+               "BlkioDeviceReadIOps": null,
+               "BlkioDeviceWriteIOps": null,
+               "CpuPeriod": 0,
+               "CpuQuota": 0,
+               "CpuRealtimePeriod": 0,
+               "CpuRealtimeRuntime": 0,
+               "CpusetCpus": "",
+               "CpusetMems": "",
+               "Devices": [],
+               "DiskQuota": 0,
+               "KernelMemory": 0,
+               "MemoryReservation": 0,
+               "MemorySwap": 0,
+               "MemorySwappiness": 0,
+               "OomKillDisable": false,
+               "PidsLimit": 2048,
+               "Ulimits": [
+                    {
+                         "Name": "RLIMIT_NOFILE",
+                         "Soft": 1048576,
+                         "Hard": 1048576
+                    },
+                    {
+                         "Name": "RLIMIT_NPROC",
+                         "Soft": 127578,
+                         "Hard": 127578
+                    }
+               ],
+               "CpuCount": 0,
+               "CpuPercent": 0,
+               "IOMaximumIOps": 0,
+               "IOMaximumBandwidth": 0,
+               "CgroupConf": null
+          },
+          "UseImageHosts": false,
+          "UseImageHostname": false
+     }
+]
