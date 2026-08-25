@@ -1,4 +1,4 @@
-# News Curator — Podman Backup & Deployment
+# News Curator
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -8,7 +8,7 @@
 
 A fast, self-hosted, dark-themed **RSS news aggregator** dashboard built with **FastAPI**, **Jinja2**, and **SQLite**, running as a rootless **Podman Quadlet** container service.
 
-This repository serves as a complete backup and deployment blueprint containing the entire web application source code, container definition, systemd Quadlet configuration, live container inspection metadata, database snapshot, and application screenshots.
+This repository contains the complete web application source code, container definition, systemd Quadlet configuration, and application screenshots.
 
 ---
 
@@ -58,8 +58,8 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 ## Repository Structure
 
 ```text
-podman-backup-newscurator/
-├── README.md                      # Documentation & backup overview
+NewsCurator/
+├── README.md                      # Documentation & overview
 ├── newscurator.container          # Podman Quadlet systemd container definition
 ├── inspect.json                   # podman inspect output for the running container
 ├── .gitignore                     # Git ignore rules for python cache & artifacts
@@ -200,29 +200,6 @@ The application uses SQLite with four core tables:
 - **`articles`**: Ingested articles (`guid`, `title`, `link`, `summary`, `published`, `fetched_at`, `status`).
 - **`categories`**: Category names and their custom HEX color codes.
 - **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`).
-
----
-
-## Backup & Restoration
-
-### Backup Database
-To create a safe online database snapshot while the container is running:
-```bash
-sqlite3 "$NEWSCURATOR_DIR/app/data/news.db" ".backup ./news_backup.db"
-```
-
-### Restore Database
-To restore the database:
-```bash
-# Stop the container
-systemctl --user stop newscurator.service
-
-# Replace the database file
-cp ./news_backup.db "$NEWSCURATOR_DIR/app/data/news.db"
-
-# Restart the service
-systemctl --user start newscurator.service
-```
 
 ---
 
