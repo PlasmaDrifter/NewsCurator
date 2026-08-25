@@ -154,6 +154,14 @@ def get_setting(conn, key, default="0"):
         return default
 
 
+def set_setting(conn, key, value):
+    try:
+        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, str(value)))
+        conn.commit()
+    except Exception as e:
+        print(f"Error setting {key}: {e}")
+
+
 def hex_to_dark_bg(hex_color, alpha=0.15):
     """Darken a hex color for use as a background."""
     h = hex_color.lstrip("#")
@@ -186,6 +194,7 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('colored_borders', '0')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_opacity', '1.0')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_size', '2')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('retention_days', '14')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -336,8 +345,13 @@ def fetch_feed(conn, feed_row):
     return new_count
 
 
-def cleanup_old_articles(days=14):
+def cleanup_old_articles(days=None):
     with closing(get_db()) as conn, conn:
+        if days is None:
+            try:
+                days = int(get_setting(conn, "retention_days", "14"))
+            except Exception:
+                days = 14
         cursor = conn.execute(
             """DELETE FROM articles 
                WHERE datetime(fetched_at) < datetime('now', '-' || ? || ' days')""",
@@ -363,7 +377,7 @@ def background_refresher(interval_seconds=1800):
     while True:
         try:
             refresh_all_feeds()
-            cleanup_old_articles(14)
+            cleanup_old_articles()
         except Exception as e:
             print(f"Background refresh error: {e}")
         time.sleep(interval_seconds)
@@ -372,8 +386,7 @@ def background_refresher(interval_seconds=1800):
 @app.on_event("startup")
 def startup():
     init_db()
-    cleanup_old_articles(14)
-    refresh_all_feeds()
+    cleanup_old_articles()
     t = threading.Thread(target=background_refresher, daemon=True)
     t.start()
 
@@ -544,6 +557,7 @@ def feeds_page(request: Request):
         colored_borders = get_setting(conn, "colored_borders") == "1"
         border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
         border_size = int(get_setting(conn, "border_size", "2"))
+        retention_days = get_setting(conn, "retention_days", "14")
     return templates.TemplateResponse("feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -551,6 +565,7 @@ def feeds_page(request: Request):
         "colored_borders": colored_borders,
         "border_opacity": border_opacity,
         "border_size": border_size,
+        "retention_days": retention_days,
     })
 
 
@@ -565,6 +580,14 @@ async def update_borders(request: Request):
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('border_opacity', ?)", (border_opacity,))
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('border_size', ?)", (border_size,))
         conn.commit()
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-retention")
+def update_retention(retention_days: str = Form(...)):
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "retention_days", retention_days)
+        cleanup_old_articles(int(retention_days))
     return RedirectResponse("/feeds", status_code=303)
 
 

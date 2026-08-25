@@ -27,6 +27,21 @@
   </form>
 </div>
 
+<!-- Article Retention Setting -->
+<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Article Retention</h3>
+    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Automatically purge articles older than the selected retention period</p>
+  </div>
+  <form method="post" action="/settings/update-retention" style="margin: 0; display: flex; align-items: center; gap: 12px;">
+    <select name="retention_days" onchange="this.form.submit()" style="background: #2a2d36; color: #c0c4cc; border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer; outline: none;">
+      <option value="7" {% if retention_days == "7" %}selected{% endif %}>7 Days</option>
+      <option value="14" {% if retention_days == "14" %}selected{% endif %}>14 Days (Default)</option>
+      <option value="30" {% if retention_days == "30" %}selected{% endif %}>30 Days</option>
+    </select>
+  </form>
+</div>
+
 <!-- Add Category -->
 <div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
   <div>
