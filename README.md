@@ -97,24 +97,26 @@ podman-backup-newscurator/
 
 ### 1. Host Directory Layout
 
-Ensure the project directories exist on the host:
-```bash
-# Application code directory
-mkdir -p /home/jmc/Source/newscurator/app
+Choose a directory location on your host machine (for example, inside your home directory `~/newscurator` or `/opt/newscurator`):
 
-# Persistent database storage directory
-mkdir -p /home/jmc/Storage/nvme2tb/newscurator/data
+```bash
+# Set your preferred installation directory
+export NEWSCURATOR_DIR="$HOME/newscurator"
+
+# Create application and persistent database directories
+mkdir -p "$NEWSCURATOR_DIR/app/data"
 ```
 
-Copy the application source files to `/home/jmc/Source/newscurator/app` and restore the database to `/home/jmc/Storage/nvme2tb/newscurator/data/news.db`.
+Copy the repository `app/` files into `$NEWSCURATOR_DIR/app/` and place your `news.db` database into `$NEWSCURATOR_DIR/app/data/news.db`.
 
 ---
 
 ### 2. Build the Podman Image
 
 Build the container image locally:
+
 ```bash
-cd /home/jmc/Source/newscurator/app
+cd "$NEWSCURATOR_DIR/app"
 podman build -t localhost/newscurator:latest -f Containerfile .
 ```
 
@@ -122,11 +124,14 @@ podman build -t localhost/newscurator:latest -f Containerfile .
 
 ### 3. Deploy with Podman Quadlet (Recommended)
 
-Copy `newscurator.container` into the user systemd Quadlet directory:
-```bash
-mkdir -p ~/.config/containers/systemd/
-cp newscurator.container ~/.config/containers/systemd/
-```
+Systemd Quadlets automatically manage rootless Podman containers as system services.
+
+1. Ensure your user Quadlet directory exists:
+   ```bash
+   mkdir -p ~/.config/containers/systemd/
+   ```
+
+2. Copy or create `newscurator.container` in `~/.config/containers/systemd/newscurator.container`.
 
 **Quadlet Definition (`~/.config/containers/systemd/newscurator.container`)**:
 ```ini
@@ -138,8 +143,8 @@ After=network-online.target
 Image=localhost/newscurator:latest
 ContainerName=newscurator
 PublishPort=5006:5006
-Volume=/home/jmc/Source/newscurator/app:/app:Z
-Volume=/home/jmc/Storage/nvme2tb/newscurator/data:/app/data:Z
+Volume=%h/newscurator/app:/app:Z
+Volume=%h/newscurator/app/data:/app/data:Z
 AutoUpdate=local
 
 [Service]
@@ -149,36 +154,41 @@ Restart=on-failure
 WantedBy=default.target
 ```
 
-Reload systemd and start the service:
-```bash
-# Reload systemd to generate the Quadlet service
-systemctl --user daemon-reload
+*(Note: `%h` is a standard systemd specifier that automatically expands to the current user's home directory. Adjust `%h/newscurator/app` if you placed the files in a custom directory).*
 
-# Start and enable the service
-systemctl --user start newscurator.service
-systemctl --user enable newscurator.service
+3. Reload systemd and start the service:
+   ```bash
+   # Reload systemd daemon to generate the Quadlet container service
+   systemctl --user daemon-reload
 
-# Check service status
-systemctl --user status newscurator.service
-```
+   # Start and enable the service
+   systemctl --user start newscurator.service
+   systemctl --user enable newscurator.service
+
+   # Verify running status
+   systemctl --user status newscurator.service
+   ```
 
 ---
 
 ### 4. Alternative: Run Directly via Podman CLI
 
-If not using systemd Quadlets, start the container manually:
+If you prefer launching directly with the Podman CLI:
+
 ```bash
+export NEWSCURATOR_DIR="$HOME/newscurator"
+
 podman run -d \
   --name newscurator \
   --replace \
   --restart on-failure \
   -p 5006:5006 \
-  -v /home/jmc/Source/newscurator/app:/app:Z \
-  -v /home/jmc/Storage/nvme2tb/newscurator/data:/app/data:Z \
+  -v "$NEWSCURATOR_DIR/app:/app:Z" \
+  -v "$NEWSCURATOR_DIR/app/data:/app/data:Z" \
   localhost/newscurator:latest
 ```
 
-The web dashboard will be available at: **`http://localhost:5006`** (or your server's IP address on port `5006`).
+The web dashboard will be available at: **`http://localhost:5006`** (or `http://<server-ip>:5006`).
 
 ---
 
@@ -198,7 +208,7 @@ The application uses SQLite with four core tables:
 ### Backup Database
 To create a safe online database snapshot while the container is running:
 ```bash
-sqlite3 /home/jmc/Storage/nvme2tb/newscurator/data/news.db ".backup ./news_backup.db"
+sqlite3 "$NEWSCURATOR_DIR/app/data/news.db" ".backup ./news_backup.db"
 ```
 
 ### Restore Database
@@ -208,7 +218,7 @@ To restore the database:
 systemctl --user stop newscurator.service
 
 # Replace the database file
-cp ./news_backup.db /home/jmc/Storage/nvme2tb/newscurator/data/news.db
+cp ./news_backup.db "$NEWSCURATOR_DIR/app/data/news.db"
 
 # Restart the service
 systemctl --user start newscurator.service

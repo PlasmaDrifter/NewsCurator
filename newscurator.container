@@ -6,8 +6,8 @@ After=network-online.target
 Image=localhost/newscurator:latest
 ContainerName=newscurator
 PublishPort=5006:5006
-Volume=/home/jmc/Source/newscurator/app:/app:Z
-Volume=/home/jmc/Storage/nvme2tb/newscurator/data:/app/data:Z
+Volume=%h/newscurator/app:/app:Z
+Volume=%h/newscurator/app/data:/app/data:Z
 AutoUpdate=local
 
 [Service]

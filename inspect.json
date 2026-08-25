@@ -1,7 +1,7 @@
 [
      {
-          "Id": "b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463",
-          "Created": "2026-08-24T17:15:31.731879113-07:00",
+          "Id": "f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5",
+          "Created": "2026-08-25T06:30:28.749270996-07:00",
           "Path": "uvicorn",
           "Args": [
                "app.main:app",
@@ -18,13 +18,13 @@
                "Restarting": false,
                "OOMKilled": false,
                "Dead": false,
-               "Pid": 2837,
-               "ConmonPid": 2835,
+               "Pid": 1251242,
+               "ConmonPid": 1251240,
                "ExitCode": 0,
                "Error": "",
-               "StartedAt": "2026-08-24T17:15:32.124418833-07:00",
+               "StartedAt": "2026-08-25T06:30:28.813708676-07:00",
                "FinishedAt": "0001-01-01T00:00:00Z",
-               "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/app.slice/newscurator.service/libpod-payload-b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463",
+               "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/app.slice/newscurator.service/libpod-payload-f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5",
                "CheckpointedAt": "0001-01-01T00:00:00Z",
                "RestoredAt": "0001-01-01T00:00:00Z"
           },
@@ -33,14 +33,14 @@
           "ImageName": "localhost/newscurator:latest",
           "Rootfs": "",
           "Pod": "",
-          "ResolvConfPath": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/resolv.conf",
-          "HostnamePath": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/hostname",
-          "HostsPath": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/hosts",
-          "StaticDir": "/home/jmc/.local/share/containers/storage/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata",
-          "OCIConfigPath": "/home/jmc/.local/share/containers/storage/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/config.json",
+          "ResolvConfPath": "/run/user/1000/containers/overlay-containers/f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5/userdata/resolv.conf",
+          "HostnamePath": "/run/user/1000/containers/overlay-containers/f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5/userdata/hostname",
+          "HostsPath": "/run/user/1000/containers/overlay-containers/f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5/userdata/hosts",
+          "StaticDir": "/home/jmc/.local/share/containers/storage/overlay-containers/f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5/userdata",
+          "OCIConfigPath": "/home/jmc/.local/share/containers/storage/overlay-containers/f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5/userdata/config.json",
           "OCIRuntime": "crun",
-          "ConmonPidFile": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/conmon.pid",
-          "PidFile": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/pidfile",
+          "ConmonPidFile": "/run/user/1000/containers/overlay-containers/f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5/userdata/conmon.pid",
+          "PidFile": "/run/user/1000/containers/overlay-containers/f4b7ceae53c3d1b2513ad5697a1e84b46dd9d180aabcf4449fe53f38276eedb5/userdata/pidfile",
           "Name": "newscurator",
           "RestartCount": 0,
           "Driver": "overlay",
@@ -78,15 +78,15 @@
                "Name": "overlay",
                "Data": {
                     "LowerDir": "/home/jmc/.local/share/containers/storage/overlay/793faa6a80707098fd7abf6dc5d4cf2c38d7f1798feddacd4dfab98ca5c49edb/diff:/home/jmc/.local/share/containers/storage/overlay/5869b93c1feb80e3bd828025b9f820b8c8efcfdb2cae8989d7302cec1a642421/diff:/home/jmc/.local/share/containers/storage/overlay/336a2df4b2e67a7c9245520d94a10d5a9ad2c3b93a8c0fcce8703e48a4cce985/diff:/home/jmc/.local/share/containers/storage/overlay/8ab43e5fc847fd5cad9f96b234b5aaa54d79c6c63e5b030568c07591cc531496/diff:/home/jmc/.local/share/containers/storage/overlay/fd329bc2d0a880034b3b46a77deeaea0a795e6cd147e1f3d10a7d004fcb4e326/diff:/home/jmc/.local/share/containers/storage/overlay/b635440a4cf75bd5c1984893f3dc09ef6e708f37fa541a240e2eaea446987e42/diff:/home/jmc/.local/share/containers/storage/overlay/3edb2192497af6e965b9b7e57dc6dbdce1f3ea721d14a98110419d4ded523298/diff",
-                    "MergedDir": "/home/jmc/.local/share/containers/storage/overlay/59049b3d8dd2f6fddb37a1f69572cf6be0ff3563fd0b3303a6a9798b5aebb1c3/merged",
-                    "UpperDir": "/home/jmc/.local/share/containers/storage/overlay/59049b3d8dd2f6fddb37a1f69572cf6be0ff3563fd0b3303a6a9798b5aebb1c3/diff",
-                    "WorkDir": "/home/jmc/.local/share/containers/storage/overlay/59049b3d8dd2f6fddb37a1f69572cf6be0ff3563fd0b3303a6a9798b5aebb1c3/work"
+                    "MergedDir": "/home/jmc/.local/share/containers/storage/overlay/71ce6293d5073436651de02eaf7014ac9d31c9787a26cf1a5c887d1afec0e56b/merged",
+                    "UpperDir": "/home/jmc/.local/share/containers/storage/overlay/71ce6293d5073436651de02eaf7014ac9d31c9787a26cf1a5c887d1afec0e56b/diff",
+                    "WorkDir": "/home/jmc/.local/share/containers/storage/overlay/71ce6293d5073436651de02eaf7014ac9d31c9787a26cf1a5c887d1afec0e56b/work"
                }
           },
           "Mounts": [
                {
                     "Type": "bind",
-                    "Source": "/home/jmc/Storage/nvme2tb/newscurator/data",
+                    "Source": "/home/jmc/Source/newscurator/app/data",
                     "Destination": "/app/data",
                     "Driver": "",
                     "Mode": "",
@@ -132,7 +132,7 @@
                          }
                     ]
                },
-               "SandboxKey": "/run/user/1000/netns/netns-a6ccdadd-64fc-af96-dc35-9112aa3641ac"
+               "SandboxKey": "/run/user/1000/netns/netns-a3601e04-5c85-767c-31c3-c1b8e8d0e97d"
           },
           "Namespace": "",
           "IsInfra": false,
@@ -140,7 +140,7 @@
           "KubeExitCodePropagation": "invalid",
           "lockNumber": 4,
           "Config": {
-               "Hostname": "b40cae96cbd1",
+               "Hostname": "f4b7ceae53c3",
                "Domainname": "",
                "User": "",
                "AttachStdin": false,
@@ -150,14 +150,14 @@
                "OpenStdin": false,
                "StdinOnce": false,
                "Env": [
-                    "PYTHON_SHA256=c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684",
                     "LANG=C.UTF-8",
+                    "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
                     "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                     "container=podman",
-                    "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
                     "PYTHON_VERSION=3.12.13",
+                    "PYTHON_SHA256=c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684",
                     "HOME=/root",
-                    "HOSTNAME=b40cae96cbd1"
+                    "HOSTNAME=f4b7ceae53c3"
                ],
                "Cmd": [
                     "uvicorn",
@@ -202,7 +202,7 @@
                     "-v",
                     "/home/jmc/Source/newscurator/app:/app:Z",
                     "-v",
-                    "/home/jmc/Storage/nvme2tb/newscurator/data:/app/data:Z",
+                    "/home/jmc/Source/newscurator/app/data:/app/data:Z",
                     "--label",
                     "io.containers.autoupdate=local",
                     "--publish",
@@ -221,7 +221,7 @@
           },
           "HostConfig": {
                "Binds": [
-                    "/home/jmc/Storage/nvme2tb/newscurator/data:/app/data:rprivate,rbind",
+                    "/home/jmc/Source/newscurator/app/data:/app/data:rprivate,rbind",
                     "/home/jmc/Source/newscurator/app:/app:rprivate,rbind"
                ],
                "CgroupManager": "systemd",
