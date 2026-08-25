@@ -36,10 +36,30 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   position: sticky;
   top: 0;
   z-index: 10;
+  gap: 16px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.topbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 .brand { font-size: 1.1rem; font-weight: 600; color: var(--text); }
 .brand:hover { text-decoration: none; }
+
+.topnav {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
 
 .topnav a {
   margin-left: 20px;
@@ -549,16 +569,16 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   color: var(--text);
   padding: 5px 28px 5px 12px;
   border-radius: 6px;
-  font-size: 0.8rem;
-  width: 180px;
+  font-size: 0.82rem;
+  width: 260px;
   outline: none;
   transition: all 0.2s ease;
 }
 
 .search-input:focus {
   border-color: var(--accent);
-  width: 220px;
-  box-shadow: 0 0 6px rgba(91, 140, 255, 0.25);
+  width: 320px;
+  box-shadow: 0 0 8px rgba(91, 140, 255, 0.3);
 }
 
 .search-input::-webkit-search-cancel-button {
