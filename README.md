@@ -23,19 +23,33 @@ Compact horizontal row list layout for quickly scanning through dozens of news a
 ![News Curator Table View](screenshots/table-view.png)
 
 ### 3. Manage Sources & Customization Panel
-Source management dashboard for adding RSS feeds, toggling feeds on/off, creating custom categories, modifying palette colors, and tuning card border size and opacity:
+Source management dashboard for adding RSS feeds, toggling feeds on/off, creating custom categories, modifying palette colors, tuning card border size and opacity, and configuring article retention:
 ![News Curator Manage Sources](screenshots/manage-sources.png)
 
 ---
 
 ## Features
 
-- **Dual Viewing Modes (Grid & Table)**: Instant toggle between a modern responsive card grid and a dense table list layout. Preference is automatically remembered across sessions via `localStorage`.
+- **Integrated Top Bar Search**:
+  - Centered search input directly in the navigation header.
+  - Searches dynamically across article titles and summaries.
+  - Seamlessly combines with category pills and source filters.
+- **Dynamic Infinite Scrolling**:
+  - Smooth asynchronous loading via modern `IntersectionObserver`.
+  - Automatically fetches and appends the next batch of articles as you scroll down the page.
+  - Seamlessly works in both Grid and Table view modes without page reloads or scroll resets.
+- **Configurable Data Retention (7, 14, 30 Days)**:
+  - Selectable retention policy (7 Days, 14 Days [Default], or 30 Days) in the Manage Sources settings panel.
+  - Real-time display of the total saved article count.
+  - Automatic background purging on startup and during scheduled feed refresh cycles to keep database storage lean.
+- **Dual Viewing Modes (Grid & Table)**:
+  - Instant toggle between a modern responsive card grid and a dense table list layout.
+  - Preference is automatically remembered across sessions via `localStorage`.
 - **Dynamic Category Styling & Custom Borders**:
   - Assign custom HEX colors to individual categories (e.g., *Computing*, *Defense*, *Linux*, *Science*, *Space*, *World News*).
   - Global card border toggle with customizable border width (px) and border opacity slider.
 - **Feed Aggregation & Background Polling**:
-  - Asynchronous background polling via `feedparser`.
+  - Non-blocking asynchronous background polling via `feedparser`.
   - Parses dates, links, summaries, and domains.
   - Displays relative fetch timestamps (`29 m`, `59 m`, `90 m`, etc.).
   - Manual on-demand refresh button.
@@ -67,13 +81,13 @@ NewsCurator/
 │   ├── Containerfile              # Podman/Docker image build definition
 │   ├── requirements.txt           # Python dependencies
 │   ├── app/
-│   │   └── main.py                # FastAPI backend routes, background feed parser, DB models
+│   │   └── main.py                # FastAPI backend routes, background feed parser, DB models, API
 │   ├── static/
 │   │   └── style.css              # Custom dark-theme styling, grid & table CSS, animations
 │   └── templates/
-│       ├── base.html              # Base Jinja2 layout and navigation bar
-│       ├── feeds.html             # Manage Sources & Settings configuration UI
-│       └── index.html             # News feed dashboard (Grid and Table views)
+│       ├── base.html              # Base Jinja2 layout, centered search box, and navigation bar
+│       ├── feeds.html             # Manage Sources, Retention & Settings configuration UI
+│       └── index.html             # News feed dashboard with dynamic infinite scroll
 ├── newscurator-data/              # Data persistence mount
 │   └── news.db                    # SQLite database snapshot (feeds, articles, categories, settings)
 └── screenshots/                   # Application screenshots
@@ -88,7 +102,7 @@ NewsCurator/
 
 - **Backend**: Python 3.12, FastAPI, Uvicorn, Feedparser, Jinja2
 - **Database**: SQLite 3 (WAL mode)
-- **Frontend**: Vanilla JavaScript, Modern CSS3 with CSS variables (Dark Catppuccin-inspired theme)
+- **Frontend**: Vanilla JavaScript (`IntersectionObserver`), Modern CSS3 with CSS variables (Dark Catppuccin-inspired theme)
 - **Container Runtime**: Podman (rootless) + systemd Quadlets
 
 ---
@@ -197,9 +211,9 @@ The web dashboard will be available at: **`http://localhost:5006`** (or `http://
 The application uses SQLite with four core tables:
 
 - **`feeds`**: Registered RSS feed URLs, feed names, category associations, enabled state, and `last_fetched` ISO timestamps.
-- **`articles`**: Ingested articles (`guid`, `title`, `link`, `summary`, `published`, `fetched_at`, `status`).
+- **`articles`**: Ingested articles (`guid`, `title`, `link`, `summary`, `image_url`, `published`, `fetched_at`, `status`).
 - **`categories`**: Category names and their custom HEX color codes.
-- **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`).
+- **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`, `retention_days`).
 
 ---
 
