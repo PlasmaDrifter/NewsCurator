@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Manage Sources</h1>
+
+<!-- Colored Card Borders Toggle -->
+<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Colored Card Borders</h3>
+    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Draw a thin border around each post matching its category color</p>
+  </div>
+  <form method="post" action="/settings/update-borders" style="margin: 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 0.85rem; color: var(--text-dim);">Opacity:</span>
+      <input type="range" name="border_opacity" min="0.1" max="1.0" step="0.1" value="{{ border_opacity }}" onchange="this.form.submit()" style="width: 100px; cursor: pointer; accent-color: var(--accent);">
+      <span style="font-size: 0.85rem; font-weight: 600; min-width: 28px;">{{ (border_opacity * 100)|int }}%</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 0.85rem; color: var(--text-dim);">Size:</span>
+      <input type="number" name="border_size" min="1" max="10" value="{{ border_size }}" onchange="this.form.submit()" style="width: 50px; background: #2a2d36; color: #c0c4cc; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.85rem; font-weight: 600; text-align: center;">
+      <span style="font-size: 0.85rem; color: var(--text-dim);">px</span>
+    </div>
+    <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+      <input type="checkbox" name="colored_borders" {% if colored_borders %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; cursor: pointer;">
+      <span style="font-size: 0.85rem; font-weight: 600;">Enable</span>
+    </label>
+  </form>
+</div>
+
+<!-- Add Category -->
+<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Add Category</h3>
+    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Create a new category with a custom theme color</p>
+  </div>
+  <form method="post" action="/categories/add" class="add-category-form" style="margin: 0; display: flex; gap: 8px; align-items: center;">
+    <input type="text" name="name" placeholder="New category name" required>
+    <input type="color" name="color" value="#5b8cff" title="Pick color">
+    <button type="submit" class="refresh-btn">+ Add</button>
+  </form>
+</div>
+
+<!-- Add Feed Source -->
+<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Add Feed Source</h3>
+    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Subscribe to a new RSS feed source under a category</p>
+  </div>
+  <form method="post" action="/feeds/add" class="add-feed-form" style="margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <input type="text" name="name" placeholder="Source name" required>
+    <input type="url" name="url" placeholder="RSS feed URL" required style="min-width: 360px;">
+    <select name="category">
+      {% for c in categories %}
+      <option value="{{ c.name }}">{{ c.name|capitalize }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="refresh-btn">+ Add Feed</button>
+  </form>
+</div>
+
+<!-- Categories Manager Chip List -->
+<div class="settings-panel" style="margin-bottom: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius);">
+  <h3 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 600;">Categories</h3>
+  <div class="category-list">
+    {% for c in categories %}
+    <form method="post" action="/categories/{{ c.name }}/edit" id="edit-cat-form-{{ c.name }}"></form>
+    <form method="post" action="/categories/{{ c.name }}/delete" id="delete-cat-form-{{ c.name }}"
+          onsubmit="return confirm('Delete {{ c.name }}? Only works if no feeds use it.');"></form>
+          
+    <div class="category-chip">
+      <span class="badge badge-{{ c.name }} view-cat-{{ c.name }}">{{ c.name }}</span>
+      <button type="button" onclick="enableCatEdit('{{ c.name }}')" class="chip-edit view-cat-{{ c.name }}" style="background:none; border:none; color:var(--text-dim); cursor:pointer; padding:0 2px; font-size:0.75rem;">Edit</button>
+      
+      <input type="text" name="name" value="{{ c.name }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.75rem; width: 80px;" required>
+      <input type="color" name="color" value="{{ c.color }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); padding: 0; cursor: pointer; background: none;">
+      
+      <button type="submit" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--accent-2); cursor: pointer; padding: 0 2px; font-weight: bold; font-size: 0.85rem;" title="Save">✓</button>
+      <button type="submit" form="delete-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--danger); cursor: pointer; padding: 0 2px;" title="Delete">✕</button>
+      <button type="button" onclick="disableCatEdit('{{ c.name }}')" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 0.85rem;" title="Cancel">Cancel</button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Feeds Table -->
+<table class="feeds-table">
+  <thead>
+    <tr><th>Name</th><th>Category</th><th>URL</th><th>Articles</th><th>Enabled</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for f in feeds %}
+    <tr class="{% if not f.enabled %}feed-disabled{% endif %}">
+      <td>
+        <span class="view-mode-{{ f.id }}">{{ f.name }}</span>
+        <input type="text" name="name" value="{{ f.name }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
+      </td>
+      <td>
+        <span class="badge badge-{{ f.category }} view-mode-{{ f.id }}">{{ f.category }}</span>
+        <select name="category" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;">
+          {% for c in categories %}
+          <option value="{{ c.name }}" {% if c.name == f.category %}selected{% endif %}>{{ c.name|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </td>
+      <td class="feed-url">
+        <span class="view-mode-{{ f.id }}">{{ f.url }}</span>
+        <input type="url" name="url" value="{{ f.url }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
+      </td>
+      <td class="article-count {% if f.article_count == 0 %}zero{% endif %}">
+        {{ f.article_count }}
+        <span style="font-size: 0.8rem; color: {% if f.last_fetched|is_older_than_day %}var(--danger){% else %}var(--text-dim){% endif %}; margin-left: 6px; font-weight: normal; font-style: italic;">({{ f.last_fetched|format_time_ago }})</span>
+      </td>
+      <td>
+        <div class="view-mode-{{ f.id }}">
+          <form method="post" action="/feeds/{{ f.id }}/toggle">
+            <button type="submit">{{ "Disable" if f.enabled else "Enable" }}</button>
+          </form>
+        </div>
+        <div class="edit-mode-{{ f.id }}" style="display: none;">
+          <form method="post" action="/feeds/{{ f.id }}/edit" id="edit-form-{{ f.id }}">
+            <button type="submit" class="refresh-btn">Save</button>
+          </form>
+        </div>
+      </td>
+      <td>
+        <div class="view-mode-{{ f.id }}" style="display: flex; gap: 4px; align-items: center;">
+          <button type="button" onclick="enableEdit({{ f.id }})">Edit</button>
+          <form method="post" action="/feeds/{{ f.id }}/delete"
+                onsubmit="return confirm('Delete this feed and its articles?');">
+            <button type="submit" class="danger">Delete</button>
+          </form>
+        </div>
+        <div class="edit-mode-{{ f.id }}" style="display: none;">
+          <button type="button" onclick="disableEdit({{ f.id }})">Cancel</button>
+        </div>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<script>
+function enableEdit(id) {
+  document.querySelectorAll('.view-mode-' + id).forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.edit-mode-' + id).forEach(el => el.style.display = '');
+}
+function disableEdit(id) {
+  document.querySelectorAll('.view-mode-' + id).forEach(el => el.style.display = '');
+  document.querySelectorAll('.edit-mode-' + id).forEach(el => el.style.display = 'none');
+}
+function enableCatEdit(name) {
+  document.querySelectorAll('.view-cat-' + name).forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.edit-cat-' + name).forEach(el => el.style.display = '');
+}
+function disableCatEdit(name) {
+  document.querySelectorAll('.view-cat-' + name).forEach(el => el.style.display = '');
+  document.querySelectorAll('.edit-cat-' + name).forEach(el => el.style.display = 'none');
+}
+</script>
+
+{% endblock %}

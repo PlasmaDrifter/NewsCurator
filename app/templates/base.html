@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}News Curator{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css?v=9">
+<link rel="stylesheet" href="/dynamic.css">
+</head>
+<body>
+<header class="topbar">
+  <a href="/" class="brand">📰 News Curator</a>
+  <nav class="topnav">
+    <a href="/">Feed</a>
+    <a href="/feeds">Manage Sources</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

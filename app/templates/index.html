@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="controls">
+  <div class="cat-buttons">
+    <a href="/?category=all&source={{ current_source }}" class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}">All</a>
+    {% for c in categories %}
+    <a href="/?category={{ c.name }}&source={{ current_source }}" class="cat-btn cat-btn-{{ c.name }} {% if current_category == c.name %}active{% endif %}">{{ c.name|replace('-', ' ')|title }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="right-controls">
+    <select name="source" onchange="window.location='/?category={{ current_category }}&source='+this.value">
+      <option value="all" {% if current_source == "all" %}selected{% endif %}>All sources</option>
+      {% for f in feeds %}
+      <option value="{{ f.id }}" {% if current_source == f.id|string %}selected{% endif %}>{{ f.name }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="button" id="view-toggle-btn" class="view-toggle-btn" onclick="toggleViewMode()" title="Toggle Grid / Table View">
+      <span id="view-toggle-icon">☰</span> <span id="view-toggle-text">Table</span>
+    </button>
+
+    <form method="post" action="/refresh">
+      <input type="hidden" name="redirect_to" value="/?category={{ current_category }}&source={{ current_source }}">
+      <button type="submit" class="refresh-btn">⟳ Refresh</button>
+    </form>
+  </div>
+</div>
+
+<div class="card-grid">
+  {% for a in articles %}
+  <article id="article-card-{{ a.id }}" class="card {% if a.status == 'read' %}read{% endif %}" {% if colored_borders and a.category_color %}style="border-color: {{ a.category_color | hex_to_rgba(border_opacity) }} !important; border-width: {{ border_size }}px !important;"{% endif %}>
+    <div class="card-meta">
+         <span class="cat-btn cat-btn-{{ a.feed_category }} post-category">
+             {{ a.feed_category|replace('-', ' ')|title }}
+        </span>
+      <span class="feed-name">{{ a.feed_name }}</span>
+      {% if a.published %}<span class="date">{{ a.published | format_date }}</span>{% endif %}
+    </div>
+    <div class="card-body">
+      <h2 class="card-title">
+        <a href="{{ a.link }}" target="_blank" rel="noopener" onclick="markAsRead({{ a.id }})" onauxclick="markAsRead({{ a.id }})">{{ a.title }}</a>
+      </h2>
+      {% if a.summary %}<p class="card-summary">{{ a.summary }}</p>{% endif %}
+      <div class="card-footer">
+        <span class="card-domain">{{ a.link | extract_domain }}</span>
+        <span class="card-added-time">{{ a.fetched_at | format_fetched_minutes }}</span>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <p class="empty-state">No articles here. Try refreshing or changing filters.</p>
+  {% endfor %}
+</div>
+
+<script>
+function markAsRead(articleId) {
+  const card = document.getElementById(`article-card-${articleId}`);
+  if (card) {
+    card.classList.add('read');
+  }
+  const formData = new FormData();
+  formData.append('status', 'read');
+  fetch(`/article/${articleId}/status`, {
+    method: 'POST',
+    body: formData
+  }).catch(err => console.error('Failed to mark article as read:', err));
+}
+
+function applyViewMode(mode) {
+  const grid = document.querySelector('.card-grid');
+  const btn = document.getElementById('view-toggle-btn');
+  const icon = document.getElementById('view-toggle-icon');
+  const text = document.getElementById('view-toggle-text');
+  if (!grid || !btn) return;
+  
+  if (mode === 'table') {
+    grid.classList.add('table-view');
+    btn.classList.add('active');
+    if (icon) icon.textContent = '⊞';
+    if (text) text.textContent = 'Grid';
+  } else {
+    grid.classList.remove('table-view');
+    btn.classList.remove('active');
+    if (icon) icon.textContent = '☰';
+    if (text) text.textContent = 'Table';
+  }
+}
+
+function toggleViewMode() {
+  const grid = document.querySelector('.card-grid');
+  const isTable = grid && grid.classList.contains('table-view');
+  const newMode = isTable ? 'grid' : 'table';
+  localStorage.setItem('newscurator_view_mode', newMode);
+  applyViewMode(newMode);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const savedMode = localStorage.getItem('newscurator_view_mode') || 'grid';
+  applyViewMode(savedMode);
+});
+</script>
+
+{% endblock %}

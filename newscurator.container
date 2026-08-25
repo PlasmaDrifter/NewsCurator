@@ -1,0 +1,17 @@
+[Unit]
+Description=News Curator
+After=network-online.target
+
+[Container]
+Image=localhost/newscurator:latest
+ContainerName=newscurator
+PublishPort=5006:5006
+Volume=/home/jmc/Source/newscurator/app:/app:Z
+Volume=/home/jmc/Storage/nvme2tb/newscurator/data:/app/data:Z
+AutoUpdate=local
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

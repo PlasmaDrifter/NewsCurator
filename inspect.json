@@ -1,7 +1,7 @@
 [
      {
-          "Id": "36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42",
-          "Created": "2026-07-05T08:01:03.84724829-07:00",
+          "Id": "b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463",
+          "Created": "2026-08-24T17:15:31.731879113-07:00",
           "Path": "uvicorn",
           "Args": [
                "app.main:app",
@@ -18,29 +18,29 @@
                "Restarting": false,
                "OOMKilled": false,
                "Dead": false,
-               "Pid": 1964332,
-               "ConmonPid": 1964330,
+               "Pid": 2837,
+               "ConmonPid": 2835,
                "ExitCode": 0,
                "Error": "",
-               "StartedAt": "2026-07-05T08:01:03.916397415-07:00",
+               "StartedAt": "2026-08-24T17:15:32.124418833-07:00",
                "FinishedAt": "0001-01-01T00:00:00Z",
-               "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/app.slice/newscurator.service/libpod-payload-36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42",
+               "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/app.slice/newscurator.service/libpod-payload-b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463",
                "CheckpointedAt": "0001-01-01T00:00:00Z",
                "RestoredAt": "0001-01-01T00:00:00Z"
           },
-          "Image": "1db05c5f51b17cc561f9f0bed7a3315e38d2c9f56813dd07d1f7c87670908d8e",
-          "ImageDigest": "sha256:347b6c02a58b0b784397719b4e1e7794e7fe0d97dd2aa0b215ac9f6f0d0af887",
+          "Image": "bcb46cbe1c0c1e530ed453adb5230b870c19e6d2e54ac4f71558e9ebfcb2eeb1",
+          "ImageDigest": "sha256:f40e20a93a73733fbb9d592bf2d287ca0daa6b63b0682f4c9ec27b2d8a66791d",
           "ImageName": "localhost/newscurator:latest",
           "Rootfs": "",
           "Pod": "",
-          "ResolvConfPath": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/resolv.conf",
-          "HostnamePath": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/hostname",
-          "HostsPath": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/hosts",
-          "StaticDir": "/home/jmc/.local/share/containers/storage/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata",
-          "OCIConfigPath": "/home/jmc/.local/share/containers/storage/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/config.json",
+          "ResolvConfPath": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/resolv.conf",
+          "HostnamePath": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/hostname",
+          "HostsPath": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/hosts",
+          "StaticDir": "/home/jmc/.local/share/containers/storage/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata",
+          "OCIConfigPath": "/home/jmc/.local/share/containers/storage/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/config.json",
           "OCIRuntime": "crun",
-          "ConmonPidFile": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/conmon.pid",
-          "PidFile": "/run/user/1000/containers/overlay-containers/36509a237402ce03a1d0c3cf538e899b38f91808e0c13ee0eb1437229927db42/userdata/pidfile",
+          "ConmonPidFile": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/conmon.pid",
+          "PidFile": "/run/user/1000/containers/overlay-containers/b40cae96cbd1c47618eb3c8ff62be896f48a6d5ba9a8186bf4a9d23b54755463/userdata/pidfile",
           "Name": "newscurator",
           "RestartCount": 0,
           "Driver": "overlay",
@@ -77,17 +77,29 @@
           "GraphDriver": {
                "Name": "overlay",
                "Data": {
-                    "LowerDir": "/home/jmc/.local/share/containers/storage/overlay/047ae9387fbe756637399bec6d95141135494d19f17929d04c3dc0dec95d904f/diff:/home/jmc/.local/share/containers/storage/overlay/daf55a08d314272f6408619de621cd473015a6cc08af17664f148e5459a906f4/diff:/home/jmc/.local/share/containers/storage/overlay/9f4327c8444258915b43e5e26dea834bd1cc2965fd8d9deb752c7d2ac9a4a4ac/diff:/home/jmc/.local/share/containers/storage/overlay/5869b93c1feb80e3bd828025b9f820b8c8efcfdb2cae8989d7302cec1a642421/diff:/home/jmc/.local/share/containers/storage/overlay/336a2df4b2e67a7c9245520d94a10d5a9ad2c3b93a8c0fcce8703e48a4cce985/diff:/home/jmc/.local/share/containers/storage/overlay/8ab43e5fc847fd5cad9f96b234b5aaa54d79c6c63e5b030568c07591cc531496/diff:/home/jmc/.local/share/containers/storage/overlay/fd329bc2d0a880034b3b46a77deeaea0a795e6cd147e1f3d10a7d004fcb4e326/diff:/home/jmc/.local/share/containers/storage/overlay/b635440a4cf75bd5c1984893f3dc09ef6e708f37fa541a240e2eaea446987e42/diff:/home/jmc/.local/share/containers/storage/overlay/3edb2192497af6e965b9b7e57dc6dbdce1f3ea721d14a98110419d4ded523298/diff",
-                    "MergedDir": "/home/jmc/.local/share/containers/storage/overlay/50927ca1ab3096088dbaf67d1080177ad69eafa61d490929a4bc30cae5d35599/merged",
-                    "UpperDir": "/home/jmc/.local/share/containers/storage/overlay/50927ca1ab3096088dbaf67d1080177ad69eafa61d490929a4bc30cae5d35599/diff",
-                    "WorkDir": "/home/jmc/.local/share/containers/storage/overlay/50927ca1ab3096088dbaf67d1080177ad69eafa61d490929a4bc30cae5d35599/work"
+                    "LowerDir": "/home/jmc/.local/share/containers/storage/overlay/793faa6a80707098fd7abf6dc5d4cf2c38d7f1798feddacd4dfab98ca5c49edb/diff:/home/jmc/.local/share/containers/storage/overlay/5869b93c1feb80e3bd828025b9f820b8c8efcfdb2cae8989d7302cec1a642421/diff:/home/jmc/.local/share/containers/storage/overlay/336a2df4b2e67a7c9245520d94a10d5a9ad2c3b93a8c0fcce8703e48a4cce985/diff:/home/jmc/.local/share/containers/storage/overlay/8ab43e5fc847fd5cad9f96b234b5aaa54d79c6c63e5b030568c07591cc531496/diff:/home/jmc/.local/share/containers/storage/overlay/fd329bc2d0a880034b3b46a77deeaea0a795e6cd147e1f3d10a7d004fcb4e326/diff:/home/jmc/.local/share/containers/storage/overlay/b635440a4cf75bd5c1984893f3dc09ef6e708f37fa541a240e2eaea446987e42/diff:/home/jmc/.local/share/containers/storage/overlay/3edb2192497af6e965b9b7e57dc6dbdce1f3ea721d14a98110419d4ded523298/diff",
+                    "MergedDir": "/home/jmc/.local/share/containers/storage/overlay/59049b3d8dd2f6fddb37a1f69572cf6be0ff3563fd0b3303a6a9798b5aebb1c3/merged",
+                    "UpperDir": "/home/jmc/.local/share/containers/storage/overlay/59049b3d8dd2f6fddb37a1f69572cf6be0ff3563fd0b3303a6a9798b5aebb1c3/diff",
+                    "WorkDir": "/home/jmc/.local/share/containers/storage/overlay/59049b3d8dd2f6fddb37a1f69572cf6be0ff3563fd0b3303a6a9798b5aebb1c3/work"
                }
           },
           "Mounts": [
                {
                     "Type": "bind",
-                    "Source": "/home/jmc/Source/newscurator-data",
+                    "Source": "/home/jmc/Storage/nvme2tb/newscurator/data",
                     "Destination": "/app/data",
+                    "Driver": "",
+                    "Mode": "",
+                    "Options": [
+                         "rbind"
+                    ],
+                    "RW": true,
+                    "Propagation": "rprivate"
+               },
+               {
+                    "Type": "bind",
+                    "Source": "/home/jmc/Source/newscurator/app",
+                    "Destination": "/app",
                     "Driver": "",
                     "Mode": "",
                     "Options": [
@@ -120,15 +132,15 @@
                          }
                     ]
                },
-               "SandboxKey": "/run/user/1000/netns/netns-6c57af16-caa3-b579-0bf4-077017481486"
+               "SandboxKey": "/run/user/1000/netns/netns-a6ccdadd-64fc-af96-dc35-9112aa3641ac"
           },
           "Namespace": "",
           "IsInfra": false,
           "IsService": false,
           "KubeExitCodePropagation": "invalid",
-          "lockNumber": 1,
+          "lockNumber": 4,
           "Config": {
-               "Hostname": "36509a237402",
+               "Hostname": "b40cae96cbd1",
                "Domainname": "",
                "User": "",
                "AttachStdin": false,
@@ -138,14 +150,14 @@
                "OpenStdin": false,
                "StdinOnce": false,
                "Env": [
-                    "PYTHON_VERSION=3.12.13",
                     "PYTHON_SHA256=c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684",
                     "LANG=C.UTF-8",
-                    "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
                     "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                     "container=podman",
+                    "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+                    "PYTHON_VERSION=3.12.13",
                     "HOME=/root",
-                    "HOSTNAME=36509a237402"
+                    "HOSTNAME=b40cae96cbd1"
                ],
                "Cmd": [
                     "uvicorn",
@@ -162,7 +174,7 @@
                "OnBuild": null,
                "Labels": {
                     "PODMAN_SYSTEMD_UNIT": "newscurator.service",
-                    "io.buildah.version": "1.43.1",
+                    "io.buildah.version": "1.43.2",
                     "io.containers.autoupdate": "local"
                },
                "Annotations": {
@@ -188,7 +200,9 @@
                     "--sdnotify=conmon",
                     "-d",
                     "-v",
-                    "/home/jmc/Source/newscurator-data:/app/data:Z",
+                    "/home/jmc/Source/newscurator/app:/app:Z",
+                    "-v",
+                    "/home/jmc/Storage/nvme2tb/newscurator/data:/app/data:Z",
                     "--label",
                     "io.containers.autoupdate=local",
                     "--publish",
@@ -207,7 +221,8 @@
           },
           "HostConfig": {
                "Binds": [
-                    "/home/jmc/Source/newscurator-data:/app/data:rprivate,rbind"
+                    "/home/jmc/Storage/nvme2tb/newscurator/data:/app/data:rprivate,rbind",
+                    "/home/jmc/Source/newscurator/app:/app:rprivate,rbind"
                ],
                "CgroupManager": "systemd",
                "CgroupMode": "private",
@@ -303,8 +318,8 @@
                     },
                     {
                          "Name": "RLIMIT_NPROC",
-                         "Soft": 127578,
-                         "Hard": 127578
+                         "Soft": 127521,
+                         "Hard": 127521
                     }
                ],
                "CpuCount": 0,
