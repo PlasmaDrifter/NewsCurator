@@ -599,43 +599,29 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   text-decoration: none;
 }
 
-/* --- LOAD MORE BUTTON --- */
-.load-more-container {
+/* --- DYNAMIC INFINITE SCROLL LOADER --- */
+.infinite-scroll-loader {
   display: flex;
-  justify-content: center;
-  margin: 24px 0 16px 0;
-}
-
-.load-more-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 9px 28px;
-  border-radius: 8px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 0 16px 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
-.load-more-btn:hover {
-  background: var(--bg-elevated);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-1px);
+.scroll-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
-.load-more-btn:active {
-  transform: translateY(0);
-}
-
-.load-more-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 

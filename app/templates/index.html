@@ -54,15 +54,16 @@
   {% endfor %}
 </div>
 
-<div id="load-more-container" class="load-more-container" {% if not has_more %}style="display: none;"{% endif %}>
-  <button type="button" id="load-more-btn" class="load-more-btn" onclick="loadMoreArticles()">
-    <span id="load-more-text">Load More</span>
-  </button>
+<div id="infinite-scroll-loader" class="infinite-scroll-loader" style="display: none;">
+  <div class="scroll-spinner"></div>
+  <span>Loading more articles...</span>
 </div>
+<div id="infinite-scroll-sentinel"></div>
 
 <script>
 let currentOffset = {{ initial_count }};
 let isLoading = false;
+let hasMoreArticles = {{ has_more | tojson }};
 const currentCategory = {{ current_category | tojson }};
 const currentSource = {{ current_source | tojson }};
 const searchQuery = {{ search_query | tojson }};
@@ -94,13 +95,10 @@ function escapeHtml(str) {
 }
 
 async function loadMoreArticles() {
-  if (isLoading) return;
+  if (isLoading || !hasMoreArticles) return;
   isLoading = true;
-  const btn = document.getElementById('load-more-btn');
-  const text = document.getElementById('load-more-text');
-  const container = document.getElementById('load-more-container');
-  if (btn) btn.disabled = true;
-  if (text) text.textContent = 'Loading...';
+  const loader = document.getElementById('infinite-scroll-loader');
+  if (loader && hasMoreArticles) loader.style.display = 'flex';
 
   try {
     const params = new URLSearchParams({
@@ -148,16 +146,12 @@ async function loadMoreArticles() {
       currentOffset = data.offset;
     }
 
-    if (!data.has_more) {
-      if (container) container.style.display = 'none';
-    }
+    hasMoreArticles = data.has_more;
   } catch (err) {
-    console.error('Error loading more articles:', err);
-    if (text) text.textContent = 'Error loading articles';
+    console.error('Error dynamically loading articles:', err);
   } finally {
     isLoading = false;
-    if (btn) btn.disabled = false;
-    if (text && text.textContent === 'Loading...') text.textContent = 'Load More';
+    if (loader) loader.style.display = 'none';
   }
 }
 
@@ -192,6 +186,23 @@ function toggleViewMode() {
 document.addEventListener('DOMContentLoaded', function() {
   const savedMode = localStorage.getItem('newscurator_view_mode') || 'grid';
   applyViewMode(savedMode);
+
+  // Smooth dynamic loading on scroll
+  const sentinel = document.getElementById('infinite-scroll-sentinel');
+  if (sentinel && window.IntersectionObserver) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && hasMoreArticles && !isLoading) {
+          loadMoreArticles();
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: '400px', // Pre-fetch next batch 400px before bottom
+      threshold: 0.1
+    });
+    observer.observe(sentinel);
+  }
 });
 </script>
 
