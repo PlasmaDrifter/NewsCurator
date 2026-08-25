@@ -558,6 +558,7 @@ def feeds_page(request: Request):
         border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
         border_size = int(get_setting(conn, "border_size", "2"))
         retention_days = get_setting(conn, "retention_days", "14")
+        total_articles = conn.execute("SELECT COUNT(*) AS c FROM articles").fetchone()["c"]
     return templates.TemplateResponse("feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -566,6 +567,7 @@ def feeds_page(request: Request):
         "border_opacity": border_opacity,
         "border_size": border_size,
         "retention_days": retention_days,
+        "total_articles": f"{total_articles:,}",
     })
 
 
