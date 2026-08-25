@@ -572,12 +572,11 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   font-size: 0.82rem;
   width: 260px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .search-input:focus {
   border-color: var(--accent);
-  width: 320px;
   box-shadow: 0 0 8px rgba(91, 140, 255, 0.3);
 }
 
