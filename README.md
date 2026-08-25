@@ -1,4 +1,4 @@
-# 📰 News Curator — Podman Backup & Deployment
+# News Curator — Podman Backup & Deployment
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -12,7 +12,7 @@ This repository serves as a complete backup and deployment blueprint containing 
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### 1. Grid View (Card Dashboard)
 Multi-column responsive card view with color-coded category borders, publication dates, source tags, and relative arrival times:
@@ -28,34 +28,34 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 
 ---
 
-## ✨ Features
+## Features
 
-- **📑 Dual Viewing Modes (Grid & Table)**: Instant toggle between a modern responsive card grid and a dense table list layout. Preference is automatically remembered across sessions via `localStorage`.
-- **🎨 Dynamic Category Styling & Custom Borders**:
+- **Dual Viewing Modes (Grid & Table)**: Instant toggle between a modern responsive card grid and a dense table list layout. Preference is automatically remembered across sessions via `localStorage`.
+- **Dynamic Category Styling & Custom Borders**:
   - Assign custom HEX colors to individual categories (e.g., *Computing*, *Defense*, *Linux*, *Science*, *Space*, *World News*).
   - Global card border toggle with customizable border width (px) and border opacity slider.
-- **🔄 Feed Aggregation & Background Polling**:
+- **Feed Aggregation & Background Polling**:
   - Asynchronous background polling via `feedparser`.
   - Parses dates, links, summaries, and domains.
   - Displays relative fetch timestamps (`29 m`, `59 m`, `90 m`, etc.).
-  - Manual on-demand `⟳ Refresh` button.
-- **🛠️ Comprehensive Feed & Category Management**:
+  - Manual on-demand refresh button.
+- **Comprehensive Feed & Category Management**:
   - Add, edit, enable/disable, and delete RSS feed sources.
   - Live article counter per feed source and relative last-fetched indicator.
   - Inline category color picker and category renaming with automatic feed migration.
-- **👁️ Read-State Tracking**:
+- **Read-State Tracking**:
   - Marking articles as read on click with subtle opacity dimming to focus on unread stories.
-- **🔒 Private & Lightweight**:
+- **Private & Lightweight**:
   - Rootless Podman container.
   - SQLite backend operating with WAL mode (`journal_mode = WAL`, `synchronous = NORMAL`) for high-concurrency read/write operations.
   - Zero cloud tracking or third-party telemetry.
-- **🐧 Systemd Quadlet Integration**:
+- **Systemd Quadlet Integration**:
   - Native systemd service auto-generation via Podman Quadlet (`newscurator.container`).
   - Automatic restart on failure and auto-update support.
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 podman-backup-newscurator/
@@ -84,7 +84,7 @@ podman-backup-newscurator/
 
 ---
 
-## 🛠️ Tech Stack & Requirements
+## Tech Stack & Requirements
 
 - **Backend**: Python 3.12, FastAPI, Uvicorn, Feedparser, Jinja2
 - **Database**: SQLite 3 (WAL mode)
@@ -93,7 +93,7 @@ podman-backup-newscurator/
 
 ---
 
-## 🚀 Quickstart & Deployment
+## Quickstart & Deployment
 
 ### 1. Host Directory Layout
 
@@ -182,7 +182,7 @@ The web dashboard will be available at: **`http://localhost:5006`** (or your ser
 
 ---
 
-## 💾 Database Schema
+## Database Schema
 
 The application uses SQLite with four core tables:
 
@@ -193,7 +193,7 @@ The application uses SQLite with four core tables:
 
 ---
 
-## 🔄 Backup & Restoration
+## Backup & Restoration
 
 ### Backup Database
 To create a safe online database snapshot while the container is running:
@@ -216,6 +216,6 @@ systemctl --user start newscurator.service
 
 ---
 
-## 📜 License
+## License
 
 Created and maintained by [PlasmaDrifter](https://github.com/PlasmaDrifter). Distributed for personal and self-hosted use.
