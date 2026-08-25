@@ -128,6 +128,10 @@ DEFAULT_FEEDS = [
     ("NASA Breaking News", "https://www.nasa.gov/news-release/feed/", "space"),
     ("Space.com", "https://www.space.com/feeds/all", "space"),
     ("SpaceNews", "https://spacenews.com/feed/", "space"),
+    # Defense
+    ("Covert Shores", "http://www.hisutton.com/feed.xml", "defense"),
+    ("Defense One", "https://www.defenseone.com/rss/all/", "defense"),
+    ("ISW", "https://news.google.com/rss/search?q=site%3Aunderstandingwar.org&hl=en-US&gl=US&ceid=US%3Aen", "defense"),
 ]
 
 
