@@ -8,7 +8,7 @@ from pathlib import Path
 
 import feedparser
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -336,6 +336,19 @@ def fetch_feed(conn, feed_row):
     return new_count
 
 
+def cleanup_old_articles(days=14):
+    with closing(get_db()) as conn, conn:
+        cursor = conn.execute(
+            """DELETE FROM articles 
+               WHERE datetime(fetched_at) < datetime('now', '-' || ? || ' days')""",
+            (days,)
+        )
+        deleted = cursor.rowcount
+        if deleted > 0:
+            print(f"Cleaned up {deleted} articles older than {days} days")
+    return deleted
+
+
 def refresh_all_feeds():
     with closing(get_db()) as conn, conn:
         feeds = conn.execute("SELECT * FROM feeds WHERE enabled = 1").fetchall()
@@ -350,6 +363,7 @@ def background_refresher(interval_seconds=1800):
     while True:
         try:
             refresh_all_feeds()
+            cleanup_old_articles(14)
         except Exception as e:
             print(f"Background refresh error: {e}")
         time.sleep(interval_seconds)
@@ -358,50 +372,50 @@ def background_refresher(interval_seconds=1800):
 @app.on_event("startup")
 def startup():
     init_db()
+    cleanup_old_articles(14)
     refresh_all_feeds()
     t = threading.Thread(target=background_refresher, daemon=True)
     t.start()
 
 
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request, category: str = "all", source: str = "all"):
-    with closing(get_db()) as conn:
-        query = """
-            SELECT articles.*, feeds.name as feed_name, feeds.category as feed_category, categories.color as category_color
-            FROM articles 
-            JOIN feeds ON articles.feed_id = feeds.id
-            LEFT JOIN categories ON feeds.category = categories.name
-            WHERE 1=1
-        """
-        params = []
-        if category != "all":
-            query += " AND feeds.category = ?"
-            params.append(category)
-        if source != "all":
-            query += " AND feeds.id = ?"
-            params.append(source)
+def query_articles(conn, category="all", source="all", q="", offset=0, limit=60):
+    params = []
+    where_clauses = ["1=1"]
 
-        if category == "all" and source == "all":
-            ranked_query = """
-                SELECT * FROM (
-                    SELECT articles.*, feeds.name as feed_name, feeds.category as feed_category,
-                           categories.color as category_color,
-                           ROW_NUMBER() OVER (
-                               PARTITION BY feeds.category
-                               ORDER BY articles.fetched_at DESC
-                           ) as rn
-                    FROM articles 
-                    JOIN feeds ON articles.feed_id = feeds.id
-                    LEFT JOIN categories ON feeds.category = categories.name
-                )
-                WHERE rn <= 40
-                ORDER BY fetched_at DESC
-                LIMIT 160
-            """
-            articles = conn.execute(ranked_query).fetchall()
-        else:
-            query += " ORDER BY articles.fetched_at DESC LIMIT 160"
-            articles = conn.execute(query, params).fetchall()
+    if category != "all":
+        where_clauses.append("feeds.category = ?")
+        params.append(category)
+    if source != "all":
+        where_clauses.append("feeds.id = ?")
+        params.append(source)
+    if q and q.strip():
+        search_term = f"%{q.strip()}%"
+        where_clauses.append("(articles.title LIKE ? OR articles.summary LIKE ?)")
+        params.extend([search_term, search_term])
+
+    where_sql = " AND ".join(where_clauses)
+
+    query = f"""
+        SELECT articles.*, feeds.name as feed_name, feeds.category as feed_category, categories.color as category_color
+        FROM articles 
+        JOIN feeds ON articles.feed_id = feeds.id
+        LEFT JOIN categories ON feeds.category = categories.name
+        WHERE {where_sql}
+        ORDER BY articles.fetched_at DESC
+        LIMIT ? OFFSET ?
+    """
+    params.extend([limit + 1, offset])
+    rows = conn.execute(query, params).fetchall()
+
+    has_more = len(rows) > limit
+    articles = rows[:limit]
+    return articles, has_more
+
+
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request, category: str = "all", source: str = "all", q: str = ""):
+    with closing(get_db()) as conn:
+        articles, has_more = query_articles(conn, category=category, source=source, q=q, offset=0, limit=60)
         feeds = conn.execute("SELECT * FROM feeds ORDER BY category, name").fetchall()
         categories = get_categories(conn)
         colored_borders = get_setting(conn, "colored_borders") == "1"
@@ -411,6 +425,9 @@ def index(request: Request, category: str = "all", source: str = "all"):
     return templates.TemplateResponse("index.html", {
         "request": request,
         "articles": articles,
+        "has_more": has_more,
+        "initial_count": len(articles),
+        "search_query": q,
         "feeds": feeds,
         "categories": categories,
         "current_category": category,
@@ -418,6 +435,35 @@ def index(request: Request, category: str = "all", source: str = "all"):
         "colored_borders": colored_borders,
         "border_opacity": border_opacity,
         "border_size": border_size,
+    })
+
+
+@app.get("/api/articles")
+def api_articles(category: str = "all", source: str = "all", q: str = "", offset: int = 0, limit: int = 60):
+    with closing(get_db()) as conn:
+        border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
+        rows, has_more = query_articles(conn, category=category, source=source, q=q, offset=offset, limit=limit)
+        items = []
+        for r in rows:
+            items.append({
+                "id": r["id"],
+                "title": r["title"],
+                "link": r["link"],
+                "summary": r["summary"],
+                "published_formatted": format_date(r["published"]),
+                "fetched_at_minutes": format_fetched_minutes(r["fetched_at"]),
+                "domain": extract_domain(r["link"]),
+                "feed_name": r["feed_name"],
+                "feed_category": r["feed_category"],
+                "feed_category_title": r["feed_category"].replace("-", " ").title(),
+                "category_color": r["category_color"] or "#888888",
+                "category_border_color": hex_to_rgba(r["category_color"] or "#888888", border_opacity),
+                "status": r["status"],
+            })
+    return JSONResponse({
+        "articles": items,
+        "offset": offset + len(items),
+        "has_more": has_more
     })
 
 

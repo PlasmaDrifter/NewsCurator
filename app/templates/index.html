@@ -3,14 +3,25 @@
 
 <div class="controls">
   <div class="cat-buttons">
-    <a href="/?category=all&source={{ current_source }}" class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}">All</a>
+    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}" class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}">All</a>
     {% for c in categories %}
-    <a href="/?category={{ c.name }}&source={{ current_source }}" class="cat-btn cat-btn-{{ c.name }} {% if current_category == c.name %}active{% endif %}">{{ c.name|replace('-', ' ')|title }}</a>
+    <a href="/?category={{ c.name }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}" class="cat-btn cat-btn-{{ c.name }} {% if current_category == c.name %}active{% endif %}">{{ c.name|replace('-', ' ')|title }}</a>
     {% endfor %}
   </div>
 
   <div class="right-controls">
-    <select name="source" onchange="window.location='/?category={{ current_category }}&source='+this.value">
+    <form method="get" action="/" class="search-form" id="search-form">
+      <input type="hidden" name="category" value="{{ current_category }}">
+      <input type="hidden" name="source" value="{{ current_source }}">
+      <div class="search-wrapper">
+        <input type="search" name="q" value="{{ search_query }}" placeholder="Search articles..." class="search-input" autocomplete="off">
+        {% if search_query %}
+        <a href="/?category={{ current_category }}&source={{ current_source }}" class="search-clear-btn" title="Clear search">&times;</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <select name="source" onchange="window.location='/?category={{ current_category }}&q={{ search_query }}&source='+this.value">
       <option value="all" {% if current_source == "all" %}selected{% endif %}>All sources</option>
       {% for f in feeds %}
       <option value="{{ f.id }}" {% if current_source == f.id|string %}selected{% endif %}>{{ f.name }}</option>
@@ -22,7 +33,7 @@
     </button>
 
     <form method="post" action="/refresh">
-      <input type="hidden" name="redirect_to" value="/?category={{ current_category }}&source={{ current_source }}">
+      <input type="hidden" name="redirect_to" value="/?category={{ current_category }}&source={{ current_source }}&q={{ search_query }}">
       <button type="submit" class="refresh-btn">⟳ Refresh</button>
     </form>
   </div>
@@ -50,11 +61,26 @@
     </div>
   </article>
   {% else %}
-  <p class="empty-state">No articles here. Try refreshing or changing filters.</p>
+  <p class="empty-state">No articles found. Try refreshing, clearing search, or changing filters.</p>
   {% endfor %}
 </div>
 
+<div id="load-more-container" class="load-more-container" {% if not has_more %}style="display: none;"{% endif %}>
+  <button type="button" id="load-more-btn" class="load-more-btn" onclick="loadMoreArticles()">
+    <span id="load-more-text">Load More</span>
+  </button>
+</div>
+
 <script>
+let currentOffset = {{ initial_count }};
+let isLoading = false;
+const currentCategory = {{ current_category | tojson }};
+const currentSource = {{ current_source | tojson }};
+const searchQuery = {{ search_query | tojson }};
+const coloredBorders = {{ colored_borders | tojson }};
+const borderOpacity = {{ border_opacity | tojson }};
+const borderSize = {{ border_size | tojson }};
+
 function markAsRead(articleId) {
   const card = document.getElementById(`article-card-${articleId}`);
   if (card) {
@@ -66,6 +92,84 @@ function markAsRead(articleId) {
     method: 'POST',
     body: formData
   }).catch(err => console.error('Failed to mark article as read:', err));
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+async function loadMoreArticles() {
+  if (isLoading) return;
+  isLoading = true;
+  const btn = document.getElementById('load-more-btn');
+  const text = document.getElementById('load-more-text');
+  const container = document.getElementById('load-more-container');
+  if (btn) btn.disabled = true;
+  if (text) text.textContent = 'Loading...';
+
+  try {
+    const params = new URLSearchParams({
+      category: currentCategory,
+      source: currentSource,
+      q: searchQuery,
+      offset: currentOffset,
+      limit: 60
+    });
+    const res = await fetch(`/api/articles?${params.toString()}`);
+    const data = await res.json();
+    
+    if (data.articles && data.articles.length > 0) {
+      const grid = document.querySelector('.card-grid');
+      data.articles.forEach(a => {
+        const article = document.createElement('article');
+        article.id = `article-card-${a.id}`;
+        article.className = `card ${a.status === 'read' ? 'read' : ''}`;
+        if (coloredBorders && a.category_color) {
+          article.style.borderColor = a.category_border_color;
+          article.style.borderWidth = `${borderSize}px`;
+        }
+
+        article.innerHTML = `
+          <div class="card-meta">
+            <span class="cat-btn cat-btn-${a.feed_category} post-category">
+              ${escapeHtml(a.feed_category_title)}
+            </span>
+            <span class="feed-name">${escapeHtml(a.feed_name)}</span>
+            ${a.published_formatted ? `<span class="date">${escapeHtml(a.published_formatted)}</span>` : ''}
+          </div>
+          <div class="card-body">
+            <h2 class="card-title">
+              <a href="${escapeHtml(a.link)}" target="_blank" rel="noopener" onclick="markAsRead(${a.id})" onauxclick="markAsRead(${a.id})">${escapeHtml(a.title)}</a>
+            </h2>
+            ${a.summary ? `<p class="card-summary">${escapeHtml(a.summary)}</p>` : ''}
+            <div class="card-footer">
+              <span class="card-domain">${escapeHtml(a.domain)}</span>
+              <span class="card-added-time">${escapeHtml(a.fetched_at_minutes)}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(article);
+      });
+      currentOffset = data.offset;
+    }
+
+    if (!data.has_more) {
+      if (container) container.style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Error loading more articles:', err);
+    if (text) text.textContent = 'Error loading articles';
+  } finally {
+    isLoading = false;
+    if (btn) btn.disabled = false;
+    if (text && text.textContent === 'Loading...') text.textContent = 'Load More';
+  }
 }
 
 function applyViewMode(mode) {
