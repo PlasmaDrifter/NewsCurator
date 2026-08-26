@@ -199,6 +199,7 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_opacity', '1.0')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_size', '2')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('retention_days', '14')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('refresh_interval', '30')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -377,14 +378,36 @@ def refresh_all_feeds():
     return total_new
 
 
-def background_refresher(interval_seconds=1800):
+def background_refresher():
     while True:
         try:
             refresh_all_feeds()
             cleanup_old_articles()
         except Exception as e:
             print(f"Background refresh error: {e}")
-        time.sleep(interval_seconds)
+
+        # Determine interval dynamically from settings (default 30 minutes)
+        with closing(get_db()) as conn:
+            try:
+                interval_min = int(get_setting(conn, "refresh_interval", "30"))
+                if interval_min < 1:
+                    interval_min = 1
+            except Exception:
+                interval_min = 30
+
+        # Responsive sleep loop checking for interval setting updates
+        target_seconds = interval_min * 60
+        elapsed = 0
+        while elapsed < target_seconds:
+            time.sleep(5)
+            elapsed += 5
+            with closing(get_db()) as conn:
+                try:
+                    current_setting = int(get_setting(conn, "refresh_interval", "30"))
+                    if current_setting != interval_min:
+                        break
+                except Exception:
+                    pass
 
 
 @app.on_event("startup")
@@ -562,6 +585,7 @@ def feeds_page(request: Request):
         border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
         border_size = int(get_setting(conn, "border_size", "2"))
         retention_days = get_setting(conn, "retention_days", "14")
+        refresh_interval = get_setting(conn, "refresh_interval", "30")
         total_articles = conn.execute("SELECT COUNT(*) AS c FROM articles").fetchone()["c"]
     return templates.TemplateResponse("feeds.html", {
         "request": request,
@@ -571,6 +595,7 @@ def feeds_page(request: Request):
         "border_opacity": border_opacity,
         "border_size": border_size,
         "retention_days": retention_days,
+        "refresh_interval": refresh_interval,
         "total_articles": f"{total_articles:,}",
     })
 
@@ -594,6 +619,15 @@ def update_retention(retention_days: str = Form(...)):
     with closing(get_db()) as conn, conn:
         set_setting(conn, "retention_days", retention_days)
         cleanup_old_articles(int(retention_days))
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-interval")
+def update_interval(refresh_interval: int = Form(...)):
+    if refresh_interval < 1:
+        refresh_interval = 1
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "refresh_interval", str(refresh_interval))
     return RedirectResponse("/feeds", status_code=303)
 
 

@@ -38,6 +38,9 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
   - Smooth asynchronous loading via modern `IntersectionObserver`.
   - Automatically fetches and appends the next batch of articles as you scroll down the page.
   - Seamlessly works in both Grid and Table view modes without page reloads or scroll resets.
+- **Configurable Refresh Interval (15, 30, 60 Min or Custom)**:
+  - Presets for 15 minutes, 30 minutes (Default), 60 minutes, or any custom minute duration.
+  - Dynamically updates the background polling loop without service restarts.
 - **Configurable Data Retention (7, 14, 30 Days)**:
   - Selectable retention policy (7 Days, 14 Days [Default], or 30 Days) in the Manage Sources settings panel.
   - Real-time display of the total saved article count.
@@ -213,7 +216,7 @@ The application uses SQLite with four core tables:
 - **`feeds`**: Registered RSS feed URLs, feed names, category associations, enabled state, and `last_fetched` ISO timestamps.
 - **`articles`**: Ingested articles (`guid`, `title`, `link`, `summary`, `image_url`, `published`, `fetched_at`, `status`).
 - **`categories`**: Category names and their custom HEX color codes.
-- **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`, `retention_days`).
+- **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`, `retention_days`, `refresh_interval`).
 
 ---
 
