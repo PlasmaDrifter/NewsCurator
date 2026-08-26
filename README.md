@@ -30,21 +30,6 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 
 ## Features
 
-- **Integrated Top Bar Search**:
-  - Centered search input directly in the navigation header.
-  - Searches dynamically across article titles and summaries.
-  - Seamlessly combines with category pills and source filters.
-- **Dynamic Infinite Scrolling**:
-  - Smooth asynchronous loading via modern `IntersectionObserver`.
-  - Automatically fetches and appends the next batch of articles as you scroll down the page.
-  - Seamlessly works in both Grid and Table view modes without page reloads or scroll resets.
-- **Configurable Refresh Interval (15, 30, 60 Min or Custom)**:
-  - Presets for 15 minutes, 30 minutes (Default), 60 minutes, or any custom minute duration.
-  - Dynamically updates the background polling loop without service restarts.
-- **Configurable Data Retention (7, 14, 30 Days)**:
-  - Selectable retention policy (7 Days, 14 Days [Default], or 30 Days) in the Manage Sources settings panel.
-  - Real-time display of the total saved article count.
-  - Automatic background purging on startup and during scheduled feed refresh cycles to keep database storage lean.
 - **Dual Viewing Modes (Grid & Table)**:
   - Instant toggle between a modern responsive card grid and a dense table list layout.
   - Preference is automatically remembered across sessions via `localStorage`.
@@ -69,6 +54,21 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 - **Systemd Quadlet Integration**:
   - Native systemd service auto-generation via Podman Quadlet (`newscurator.container`).
   - Automatic restart on failure and auto-update support.
+- **Integrated Top Bar Search**:
+  - Centered search input directly in the navigation header.
+  - Searches dynamically across article titles and summaries.
+  - Seamlessly combines with category pills and source filters.
+- **Dynamic Infinite Scrolling**:
+  - Smooth asynchronous loading via modern `IntersectionObserver`.
+  - Automatically fetches and appends the next batch of articles as you scroll down the page.
+  - Seamlessly works in both Grid and Table view modes without page reloads or scroll resets.
+- **Configurable Refresh Interval (15, 30, 60 Min or Custom)**:
+  - Presets for 15 minutes, 30 minutes (Default), 60 minutes, or any custom minute duration.
+  - Dynamically updates the background polling loop without service restarts.
+- **Configurable Data Retention (7, 14, 30 Days)**:
+  - Selectable retention policy (7 Days, 14 Days [Default], or 30 Days) in the Manage Sources settings panel.
+  - Real-time display of the total saved article count.
+  - Automatic background purging on startup and during scheduled feed refresh cycles to keep database storage lean.
 
 ---
 
