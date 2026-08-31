@@ -175,24 +175,6 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   to { transform: rotate(360deg); }
 }
 
-/* Top Accent Loading Bar */
-.top-loading-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), #7ee787, #c061cb, var(--accent));
-  background-size: 300% 100%;
-  animation: top-bar-glow 1.2s ease-in-out infinite;
-  z-index: 99999;
-}
-
-@keyframes top-bar-glow {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
-}
-
 /* --- ARTICLES AND CARDS --- */
 .card-grid {
   display: grid;

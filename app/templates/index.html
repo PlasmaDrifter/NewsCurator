@@ -195,12 +195,6 @@ function handleRefreshSubmit(form) {
   if (text) {
     text.textContent = 'Refreshing...';
   }
-  if (!document.getElementById('top-loading-bar')) {
-    const bar = document.createElement('div');
-    bar.id = 'top-loading-bar';
-    bar.className = 'top-loading-bar';
-    document.body.prepend(bar);
-  }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
