@@ -21,9 +21,12 @@
       <span id="view-toggle-icon">☰</span> <span id="view-toggle-text">Table</span>
     </button>
 
-    <form method="post" action="/refresh">
+    <form method="post" action="/refresh" id="refresh-form" onsubmit="handleRefreshSubmit(this)">
       <input type="hidden" name="redirect_to" value="/?category={{ current_category }}&source={{ current_source }}&q={{ search_query }}">
-      <button type="submit" class="refresh-btn">⟳ Refresh</button>
+      <button type="submit" class="refresh-btn" id="refresh-btn">
+        <span class="refresh-icon" id="refresh-icon">⟳</span>
+        <span class="refresh-text" id="refresh-text">Refresh</span>
+      </button>
     </form>
   </div>
 </div>
@@ -181,6 +184,23 @@ function toggleViewMode() {
   const newMode = isTable ? 'grid' : 'table';
   localStorage.setItem('newscurator_view_mode', newMode);
   applyViewMode(newMode);
+}
+
+function handleRefreshSubmit(form) {
+  const btn = form.querySelector('.refresh-btn');
+  const text = form.querySelector('.refresh-text');
+  if (btn) {
+    btn.classList.add('refreshing');
+  }
+  if (text) {
+    text.textContent = 'Refreshing...';
+  }
+  if (!document.getElementById('top-loading-bar')) {
+    const bar = document.createElement('div');
+    bar.id = 'top-loading-bar';
+    bar.className = 'top-loading-bar';
+    document.body.prepend(bar);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
