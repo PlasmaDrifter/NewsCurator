@@ -49,17 +49,13 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
   - Clicking anywhere on an article card or table row opens the story in a new tab.
   - Automatically tracks read-state with subtle opacity dimming to keep unread content front and center.
 - **Article Bookmarking & Dedicated Saved View**:
-  - Upper-right bookmark tag on every article card and table row with subtle 60% idle transparency and bright full-color active state.
+  - Upper-right bookmark tag on every article card and table row.
   - Independent bookmark click handling: toggles bookmark state asynchronously without unintentionally opening the article link.
   - Dedicated bookmarks button in the navigation header directly next to the search bar.
-  - Full-opacity display mode in the bookmarked listings view (disabling read-state dimming).
   - Saved articles are permanently immune to automatic retention pruning.
-- **Abbreviated Date Formatting**:
-  - Publication dates formatted with standard 3-4 letter month abbreviations (e.g., Aug., Sept., Oct., June, July).
 - **Integrated Top Bar Search**:
   - Centered search input directly in the navigation header.
   - Dynamically searches across article titles and summaries.
-  - High-contrast, prominent clear ("x") button that reactively appears as you type to reset search terms in one click.
   - Seamlessly combines with category pills and source filters.
 - **Dynamic Infinite Scrolling**:
   - Smooth asynchronous loading via modern `IntersectionObserver`.
