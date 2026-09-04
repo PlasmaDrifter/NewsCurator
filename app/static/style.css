@@ -61,12 +61,54 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   flex-shrink: 0;
 }
 
-.topnav a {
-  margin-left: 20px;
-  color: var(--text-dim);
-  font-weight: 500;
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim) !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
-.topnav a:hover { color: var(--text); text-decoration: none; }
+
+.nav-btn:hover {
+  background: var(--bg-input);
+  border-color: var(--accent);
+  color: var(--text) !important;
+  transform: translateY(-1px);
+}
+
+.nav-btn:active {
+  transform: translateY(0);
+}
+
+.settings-gear {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.nav-settings-btn:hover .settings-gear {
+  transform: rotate(45deg);
+}
+
+.nav-back-arrow {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.nav-back-btn:hover .nav-back-arrow {
+  transform: translateX(-2px);
+}
 
 /* --- TIGHTER MAIN CONTAINER PADDING --- */
 main {

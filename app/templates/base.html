@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}News Curator{% endblock %}</title>
-<link rel="stylesheet" href="/static/style.css?v=16">
+<link rel="stylesheet" href="/static/style.css?v=17">
 <link rel="stylesheet" href="/dynamic.css">
 </head>
 <body>
@@ -25,8 +25,15 @@
     </form>
   </div>
   <nav class="topnav">
-    <a href="/">Feed</a>
-    <a href="/feeds">Manage Sources</a>
+    {% if request.url.path == "/feeds" %}
+    <a href="/" class="nav-btn nav-back-btn" title="Return to news feed">
+      <span class="nav-back-arrow">←</span> <span>Back to Feed</span>
+    </a>
+    {% else %}
+    <a href="/feeds" class="nav-btn nav-settings-btn" title="Manage Sources & Settings">
+      <span class="settings-gear">⚙</span> <span>Settings</span>
+    </a>
+    {% endif %}
   </nav>
 </header>
 <main>
