@@ -232,7 +232,14 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   display: flex;
   flex-direction: column;
   height: 240px;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .card.read {
@@ -287,8 +294,9 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.card-title a { color: var(--text); }
-.card-title a:hover { color: var(--accent); }
+.card-title a { color: var(--text); transition: color 0.15s ease; }
+.card-title a:hover,
+.card:hover .card-title a { color: var(--accent); }
 
 .card-summary {
   margin: 0;

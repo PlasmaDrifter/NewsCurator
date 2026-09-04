@@ -33,7 +33,10 @@
 
 <div class="card-grid">
   {% for a in articles %}
-  <article id="article-card-{{ a.id }}" class="card {% if a.status == 'read' %}read{% endif %}" {% if colored_borders and a.category_color %}style="border-color: {{ a.category_color | hex_to_rgba(border_opacity) }} !important; border-width: {{ border_size }}px !important;"{% endif %}>
+  <article id="article-card-{{ a.id }}" class="card {% if a.status == 'read' %}read{% endif %}"
+    data-link="{{ a.link }}" data-id="{{ a.id }}"
+    onclick="handleCardClick(event, this)" onauxclick="handleCardClick(event, this)"
+    {% if colored_borders and a.category_color %}style="border-color: {{ a.category_color | hex_to_rgba(border_opacity) }} !important; border-width: {{ border_size }}px !important;"{% endif %}>
     <div class="card-meta">
          <span class="cat-btn cat-btn-{{ a.feed_category }} post-category">
              {{ a.feed_category|replace('-', ' ')|title }}
@@ -73,6 +76,28 @@ const searchQuery = {{ search_query | tojson }};
 const coloredBorders = {{ colored_borders | tojson }};
 const borderOpacity = {{ border_opacity | tojson }};
 const borderSize = {{ border_size | tojson }};
+
+function handleCardClick(event, card) {
+  const selection = window.getSelection();
+  if (selection && selection.toString().trim().length > 0) return;
+
+  const link = card.getAttribute('data-link');
+  const id = card.getAttribute('data-id');
+
+  if (id) {
+    markAsRead(id);
+  }
+
+  // If clicked directly on the <a> link, let the browser handle it natively
+  if (event.target.closest('a')) {
+    return;
+  }
+
+  // Handle left click (0) and middle click (1)
+  if (link && (event.button === 0 || event.button === 1)) {
+    window.open(link, '_blank', 'noopener,noreferrer');
+  }
+}
 
 function markAsRead(articleId) {
   const card = document.getElementById(`article-card-${articleId}`);
@@ -120,6 +145,10 @@ async function loadMoreArticles() {
         const article = document.createElement('article');
         article.id = `article-card-${a.id}`;
         article.className = `card ${a.status === 'read' ? 'read' : ''}`;
+        article.setAttribute('data-link', a.link);
+        article.setAttribute('data-id', a.id);
+        article.onclick = (e) => handleCardClick(e, article);
+        article.onauxclick = (e) => handleCardClick(e, article);
         if (coloredBorders && a.category_color) {
           article.style.borderColor = a.category_border_color;
           article.style.borderWidth = `${borderSize}px`;
