@@ -763,15 +763,19 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   line-height: 1;
   text-decoration: none !important;
   cursor: pointer;
-  opacity: 1;
-  transition: transform 0.15s ease, filter 0.2s ease;
+  opacity: 0.95;
+  filter: brightness(0.95);
+  transition: transform 0.15s ease, filter 0.2s ease, opacity 0.15s ease;
 }
 
 .topbar-bookmark-btn:hover {
+  opacity: 1;
+  filter: brightness(1.05);
   transform: scale(1.18);
 }
 
 .topbar-bookmark-btn.active {
+  opacity: 1;
   transform: scale(1.15);
   filter: drop-shadow(0 0 6px var(--accent));
 }
