@@ -41,9 +41,7 @@
     <button type="button" class="card-bookmark-btn {% if a.is_bookmarked %}active{% endif %}"
       title="{% if a.is_bookmarked %}Remove bookmark{% else %}Bookmark article{% endif %}"
       onclick="toggleBookmark(event, {{ a.id }})" onauxclick="event.stopPropagation()">
-      <svg class="bookmark-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-        <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-      </svg>
+      <span class="bookmark-tag-icon">🔖</span>
     </button>
 
     <div class="card-meta">
@@ -191,9 +189,7 @@ async function loadMoreArticles() {
           <button type="button" class="card-bookmark-btn ${a.is_bookmarked ? 'active' : ''}"
             title="${a.is_bookmarked ? 'Remove bookmark' : 'Bookmark article'}"
             onclick="toggleBookmark(event, ${a.id})" onauxclick="event.stopPropagation()">
-            <svg class="bookmark-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-            </svg>
+            <span class="bookmark-tag-icon">🔖</span>
           </button>
           <div class="card-meta">
             <span class="cat-btn cat-btn-${a.feed_category} post-category">

@@ -261,37 +261,37 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 /* --- BOOKMARK BUTTONS & TAGS --- */
 .card-bookmark-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 6px;
+  right: 6px;
   background: transparent;
   border: none;
   padding: 4px;
   cursor: pointer;
   line-height: 1;
+  font-size: 1.15rem;
   z-index: 5;
   border-radius: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
   opacity: 0.4; /* 60% transparent when not active */
-  transition: opacity 0.2s ease, transform 0.15s ease, color 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.15s ease, filter 0.2s ease;
 }
 
 .card-bookmark-btn:hover {
   opacity: 0.8;
-  transform: scale(1.15);
-  color: var(--text);
+  transform: scale(1.18);
 }
 
 .card-bookmark-btn.active {
   opacity: 1.0; /* Full color when activated */
-  color: var(--accent);
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 4px var(--accent));
 }
 
 .card-bookmark-btn.active:hover {
   opacity: 1.0;
-  transform: scale(1.15);
+  transform: scale(1.22);
 }
 
 .card-img {
@@ -738,33 +738,33 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .topbar-bookmark-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  justify-content: center;
+  padding: 5px 10px;
+  height: 31px;
   border-radius: 6px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1;
   color: var(--text-dim) !important;
   text-decoration: none !important;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
 }
 
 .topbar-bookmark-btn:hover {
   background: var(--bg-input);
   border-color: var(--accent);
-  color: var(--text) !important;
+  transform: translateY(-1px);
 }
 
 .topbar-bookmark-btn.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #0c0d10 !important;
+  box-shadow: 0 0 8px rgba(91, 140, 255, 0.4);
 }
 
-.topbar-bookmark-btn .topbar-bookmark-icon {
+.topbar-bookmark-btn .bookmark-tag-icon {
   display: inline-block;
   line-height: 1;
 }

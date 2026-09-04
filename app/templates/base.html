@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}News Curator{% endblock %}</title>
-<link rel="stylesheet" href="/static/style.css?v=19">
+<link rel="stylesheet" href="/static/style.css?v=20">
 <link rel="stylesheet" href="/dynamic.css">
 </head>
 <body>
@@ -27,10 +27,7 @@
     <a href="{% if is_bookmarked_view %}/{% else %}/?bookmarked=1{% endif %}"
        class="topbar-bookmark-btn {% if is_bookmarked_view %}active{% endif %}"
        title="{% if is_bookmarked_view %}Show All Articles{% else %}View Bookmarked Articles{% endif %}">
-      <svg class="topbar-bookmark-icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
-        <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-      </svg>
-      <span>Bookmarks</span>
+      <span class="bookmark-tag-icon">🔖</span>
     </a>
   </div>
   <nav class="topnav">
