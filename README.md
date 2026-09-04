@@ -54,6 +54,13 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 - **Systemd Quadlet Integration**:
   - Native systemd service auto-generation via Podman Quadlet (`newscurator.container`).
   - Automatic restart on failure and auto-update support.
+- **Article Bookmarking & Dedicated Saved View**:
+  - Upper-right bookmark tag on every article card and table row with subtle 60% idle transparency and bright full-color active state.
+  - Dedicated "Bookmarks" button in the navigation header directly next to the search bar.
+  - Full-opacity display mode in the bookmarked listings view (disabling read-state dimming).
+  - Saved articles are permanently immune to automatic retention pruning.
+- **Abbreviated Date Formatting**:
+  - Dates use standard 3-4 letter month abbreviations (e.g., Aug., Sept., Oct., June, July).
 - **Integrated Top Bar Search**:
   - Centered search input directly in the navigation header.
   - Searches dynamically across article titles and summaries.
@@ -214,7 +221,7 @@ The web dashboard will be available at: **`http://localhost:5006`** (or `http://
 The application uses SQLite with four core tables:
 
 - **`feeds`**: Registered RSS feed URLs, feed names, category associations, enabled state, and `last_fetched` ISO timestamps.
-- **`articles`**: Ingested articles (`guid`, `title`, `link`, `summary`, `image_url`, `published`, `fetched_at`, `status`).
+- **`articles`**: Ingested articles (`guid`, `title`, `link`, `summary`, `image_url`, `published`, `fetched_at`, `status`, `is_bookmarked`).
 - **`categories`**: Category names and their custom HEX color codes.
 - **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`, `retention_days`, `refresh_interval`).
 

@@ -31,12 +31,21 @@
   </div>
 </div>
 
-<div class="card-grid">
+<div class="card-grid {% if is_bookmarked_view %}bookmarked-view{% endif %}">
   {% for a in articles %}
   <article id="article-card-{{ a.id }}" class="card {% if a.status == 'read' %}read{% endif %}"
     data-link="{{ a.link }}" data-id="{{ a.id }}"
     onclick="handleCardClick(event, this)" onauxclick="handleCardClick(event, this)"
     {% if colored_borders and a.category_color %}style="border-color: {{ a.category_color | hex_to_rgba(border_opacity) }} !important; border-width: {{ border_size }}px !important;"{% endif %}>
+    
+    <button type="button" class="card-bookmark-btn {% if a.is_bookmarked %}active{% endif %}"
+      title="{% if a.is_bookmarked %}Remove bookmark{% else %}Bookmark article{% endif %}"
+      onclick="toggleBookmark(event, {{ a.id }})" onauxclick="event.stopPropagation()">
+      <svg class="bookmark-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+        <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
+      </svg>
+    </button>
+
     <div class="card-meta">
          <span class="cat-btn cat-btn-{{ a.feed_category }} post-category">
              {{ a.feed_category|replace('-', ' ')|title }}
@@ -73,11 +82,17 @@ let hasMoreArticles = {{ has_more | tojson }};
 const currentCategory = {{ current_category | tojson }};
 const currentSource = {{ current_source | tojson }};
 const searchQuery = {{ search_query | tojson }};
+const isBookmarkedView = {{ is_bookmarked_view | tojson }};
 const coloredBorders = {{ colored_borders | tojson }};
 const borderOpacity = {{ border_opacity | tojson }};
 const borderSize = {{ border_size | tojson }};
 
 function handleCardClick(event, card) {
+  // If clicked on bookmark button, do not navigate
+  if (event.target.closest('.card-bookmark-btn')) {
+    return;
+  }
+
   const selection = window.getSelection();
   if (selection && selection.toString().trim().length > 0) return;
 
@@ -97,6 +112,23 @@ function handleCardClick(event, card) {
   if (link && (event.button === 0 || event.button === 1)) {
     window.open(link, '_blank', 'noopener,noreferrer');
   }
+}
+
+function toggleBookmark(event, articleId) {
+  event.stopPropagation();
+  event.preventDefault();
+  const btn = event.currentTarget;
+  fetch(`/article/${articleId}/bookmark`, {
+    method: 'POST'
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      btn.classList.toggle('active', data.is_bookmarked);
+      btn.title = data.is_bookmarked ? 'Remove bookmark' : 'Bookmark article';
+    }
+  })
+  .catch(err => console.error('Failed to toggle bookmark:', err));
 }
 
 function markAsRead(articleId) {
@@ -133,6 +165,7 @@ async function loadMoreArticles() {
       category: currentCategory,
       source: currentSource,
       q: searchQuery,
+      bookmarked: isBookmarkedView ? 1 : 0,
       offset: currentOffset,
       limit: 60
     });
@@ -155,6 +188,13 @@ async function loadMoreArticles() {
         }
 
         article.innerHTML = `
+          <button type="button" class="card-bookmark-btn ${a.is_bookmarked ? 'active' : ''}"
+            title="${a.is_bookmarked ? 'Remove bookmark' : 'Bookmark article'}"
+            onclick="toggleBookmark(event, ${a.id})" onauxclick="event.stopPropagation()">
+            <svg class="bookmark-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
+            </svg>
+          </button>
           <div class="card-meta">
             <span class="cat-btn cat-btn-${a.feed_category} post-category">
               ${escapeHtml(a.feed_category_title)}

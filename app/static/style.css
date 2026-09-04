@@ -50,6 +50,7 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: center;
   flex: 1;
+  gap: 10px;
 }
 
 .brand { font-size: 1.1rem; font-weight: 600; color: var(--text); }
@@ -232,6 +233,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   display: flex;
   flex-direction: column;
   height: 240px;
+  position: relative;
   transition: opacity 0.2s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
 }
@@ -248,6 +250,48 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .card.read:hover {
   opacity: 0.85;
+}
+
+/* Bookmarks listing view: no transparency */
+.card-grid.bookmarked-view .card,
+.card-grid.bookmarked-view .card.read {
+  opacity: 1 !important;
+}
+
+/* --- BOOKMARK BUTTONS & TAGS --- */
+.card-bookmark-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 5;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  opacity: 0.4; /* 60% transparent when not active */
+  transition: opacity 0.2s ease, transform 0.15s ease, color 0.2s ease;
+}
+
+.card-bookmark-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.15);
+  color: var(--text);
+}
+
+.card-bookmark-btn.active {
+  opacity: 1.0; /* Full color when activated */
+  color: var(--accent);
+}
+
+.card-bookmark-btn.active:hover {
+  opacity: 1.0;
+  transform: scale(1.15);
 }
 
 .card-img {
@@ -267,7 +311,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   font-size: 0.75rem;
   color: var(--text-dim);
   flex-wrap: wrap;
-  padding: 10px 14px 6px;
+  padding: 10px 34px 6px 14px;
 }
 
 .badge {
@@ -549,12 +593,23 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  padding: 9px 16px;
+  padding: 9px 44px 9px 16px;
   gap: 14px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 6px;
+  position: relative;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.card-grid.table-view .card-bookmark-btn {
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+}
+
+.card-grid.table-view .card-bookmark-btn:hover {
+  transform: translateY(-50%) scale(1.15);
 }
 
 .card-grid.table-view .card:hover {
@@ -678,6 +733,40 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .search-clear-btn:hover {
   color: var(--text);
   text-decoration: none;
+}
+
+.topbar-bookmark-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim) !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.topbar-bookmark-btn:hover {
+  background: var(--bg-input);
+  border-color: var(--accent);
+  color: var(--text) !important;
+}
+
+.topbar-bookmark-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0c0d10 !important;
+}
+
+.topbar-bookmark-btn .topbar-bookmark-icon {
+  display: inline-block;
+  line-height: 1;
 }
 
 /* --- DYNAMIC INFINITE SCROLL LOADER --- */

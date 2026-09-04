@@ -20,6 +20,11 @@ app = FastAPI(title="News Curator")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+MONTH_ABBR = {
+    1: "Jan.", 2: "Feb.", 3: "Mar.", 4: "Apr.", 5: "May",
+    6: "June", 7: "July", 8: "Aug.", 9: "Sept.", 10: "Oct.", 11: "Nov.", 12: "Dec."
+}
+
 def format_date(value):
     if not value:
         return ""
@@ -31,12 +36,14 @@ def format_date(value):
         if parsed:
             ts = email.utils.mktime_tz(parsed)
             dt = datetime.fromtimestamp(ts, tz=ZoneInfo("America/Los_Angeles"))
-            return dt.strftime("%H:%M - %B %-d")
+            month_str = MONTH_ABBR.get(dt.month, dt.strftime("%b"))
+            return f"{dt.strftime('%H:%M')} - {month_str} {dt.day}"
         try:
             val_clean = value.replace("Z", "+00:00")
             dt = datetime.fromisoformat(val_clean)
             dt = dt.astimezone(ZoneInfo("America/Los_Angeles"))
-            return dt.strftime("%H:%M - %B %-d")
+            month_str = MONTH_ABBR.get(dt.month, dt.strftime("%b"))
+            return f"{dt.strftime('%H:%M')} - {month_str} {dt.day}"
         except Exception:
             pass
     except Exception:
@@ -240,8 +247,13 @@ def init_db():
                 FOREIGN KEY(feed_id) REFERENCES feeds(id)
             )
         """)
+        try:
+            conn.execute("ALTER TABLE articles ADD COLUMN is_bookmarked INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_bookmarked ON articles(is_bookmarked)")
 
         # Seed default categories with colors
         for cat_name, cat_color in DEFAULT_CATEGORIES:
@@ -359,7 +371,8 @@ def cleanup_old_articles(days=None):
                 days = 14
         cursor = conn.execute(
             """DELETE FROM articles 
-               WHERE datetime(fetched_at) < datetime('now', '-' || ? || ' days')""",
+               WHERE datetime(fetched_at) < datetime('now', '-' || ? || ' days')
+               AND (is_bookmarked = 0 OR is_bookmarked IS NULL)""",
             (days,)
         )
         deleted = cursor.rowcount
@@ -418,10 +431,12 @@ def startup():
     t.start()
 
 
-def query_articles(conn, category="all", source="all", q="", offset=0, limit=60):
+def query_articles(conn, category="all", source="all", q="", bookmarked=False, offset=0, limit=60):
     params = []
     where_clauses = ["1=1"]
 
+    if bookmarked:
+        where_clauses.append("articles.is_bookmarked = 1")
     if category != "all":
         where_clauses.append("feeds.category = ?")
         params.append(category)
@@ -453,9 +468,9 @@ def query_articles(conn, category="all", source="all", q="", offset=0, limit=60)
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, category: str = "all", source: str = "all", q: str = ""):
+def index(request: Request, category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0):
     with closing(get_db()) as conn:
-        articles, has_more = query_articles(conn, category=category, source=source, q=q, offset=0, limit=60)
+        articles, has_more = query_articles(conn, category=category, source=source, q=q, bookmarked=bool(bookmarked), offset=0, limit=60)
         feeds = conn.execute("SELECT * FROM feeds ORDER BY category, name").fetchall()
         categories = get_categories(conn)
         colored_borders = get_setting(conn, "colored_borders") == "1"
@@ -472,6 +487,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "categories": categories,
         "current_category": category,
         "current_source": source,
+        "is_bookmarked_view": bool(bookmarked),
         "colored_borders": colored_borders,
         "border_opacity": border_opacity,
         "border_size": border_size,
@@ -479,10 +495,10 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
 
 
 @app.get("/api/articles")
-def api_articles(category: str = "all", source: str = "all", q: str = "", offset: int = 0, limit: int = 60):
+def api_articles(category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, offset: int = 0, limit: int = 60):
     with closing(get_db()) as conn:
         border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
-        rows, has_more = query_articles(conn, category=category, source=source, q=q, offset=offset, limit=limit)
+        rows, has_more = query_articles(conn, category=category, source=source, q=q, bookmarked=bool(bookmarked), offset=offset, limit=limit)
         items = []
         for r in rows:
             items.append({
@@ -495,16 +511,28 @@ def api_articles(category: str = "all", source: str = "all", q: str = "", offset
                 "domain": extract_domain(r["link"]),
                 "feed_name": r["feed_name"],
                 "feed_category": r["feed_category"],
-                "feed_category_title": r["feed_category"].replace("-", " ").title(),
+                "feed_category_title": (r["feed_category"] or "").replace("-", " ").title(),
                 "category_color": r["category_color"] or "#888888",
                 "category_border_color": hex_to_rgba(r["category_color"] or "#888888", border_opacity),
                 "status": r["status"],
+                "is_bookmarked": bool(r["is_bookmarked"]),
             })
     return JSONResponse({
         "articles": items,
         "offset": offset + len(items),
         "has_more": has_more
     })
+
+
+@app.post("/article/{article_id}/bookmark")
+def toggle_bookmark(article_id: int):
+    with closing(get_db()) as conn, conn:
+        row = conn.execute("SELECT is_bookmarked FROM articles WHERE id = ?", (article_id,)).fetchone()
+        if row is not None:
+            new_val = 0 if row["is_bookmarked"] else 1
+            conn.execute("UPDATE articles SET is_bookmarked = ? WHERE id = ?", (new_val, article_id))
+            return JSONResponse({"success": True, "is_bookmarked": bool(new_val)})
+    return JSONResponse({"success": False}, status_code=404)
 
 
 @app.post("/article/{article_id}/status")
