@@ -244,17 +244,22 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
-.card.read {
+.card.read .card-meta,
+.card.read .card-body {
   opacity: 0.45;
+  transition: opacity 0.2s ease;
 }
 
-.card.read:hover {
+.card.read:hover .card-meta,
+.card.read:hover .card-body {
   opacity: 0.85;
 }
 
 /* Bookmarks listing view: no transparency */
 .card-grid.bookmarked-view .card,
-.card-grid.bookmarked-view .card.read {
+.card-grid.bookmarked-view .card.read,
+.card-grid.bookmarked-view .card.read .card-meta,
+.card-grid.bookmarked-view .card.read .card-body {
   opacity: 1 !important;
 }
 
