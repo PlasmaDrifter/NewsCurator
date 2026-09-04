@@ -744,29 +744,31 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 10px;
-  height: 31px;
-  border-radius: 6px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  font-size: 1rem;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  font-size: 1.25rem;
   line-height: 1;
-  color: var(--text-dim) !important;
   text-decoration: none !important;
   cursor: pointer;
-  transition: all 0.2s ease;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, transform 0.15s ease, filter 0.2s ease;
 }
 
 .topbar-bookmark-btn:hover {
-  background: var(--bg-input);
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  opacity: 0.9;
+  transform: scale(1.18);
 }
 
 .topbar-bookmark-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(91, 140, 255, 0.4);
+  opacity: 1.0;
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 5px var(--accent));
+}
+
+.topbar-bookmark-btn.active:hover {
+  opacity: 1.0;
+  transform: scale(1.22);
 }
 
 .topbar-bookmark-btn .bookmark-tag-icon {
