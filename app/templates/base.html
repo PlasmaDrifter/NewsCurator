@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}News Curator{% endblock %}</title>
-<link rel="stylesheet" href="/static/style.css?v=23">
+<link rel="stylesheet" href="/static/style.css?v=24">
 <link rel="stylesheet" href="/dynamic.css">
 </head>
 <body>
@@ -18,10 +18,8 @@
       {% if current_source and current_source != "all" %}<input type="hidden" name="source" value="{{ current_source }}">{% endif %}
       {% if is_bookmarked_view %}<input type="hidden" name="bookmarked" value="1">{% endif %}
       <div class="search-wrapper">
-        <input type="search" name="q" value="{{ search_query|default('') }}" placeholder="Search articles..." class="search-input" autocomplete="off">
-        {% if search_query %}
-        <a href="/?{% if current_category and current_category != 'all' %}category={{ current_category }}&{% endif %}{% if current_source and current_source != 'all' %}source={{ current_source }}&{% endif %}{% if is_bookmarked_view %}bookmarked=1{% endif %}" class="search-clear-btn" title="Clear search">&times;</a>
-        {% endif %}
+        <input type="search" name="q" id="search-input" value="{{ search_query|default('') }}" placeholder="Search articles..." class="search-input" autocomplete="off">
+        <button type="button" id="search-clear-btn" class="search-clear-btn" title="Clear search" style="display: {% if search_query %}flex{% else %}none{% endif %};" onclick="clearSearch()">&times;</button>
       </div>
     </form>
     <a href="{% if is_bookmarked_view %}/{% else %}/?bookmarked=1{% endif %}"
@@ -45,5 +43,29 @@
 <main>
 {% block content %}{% endblock %}
 </main>
+<script>
+function clearSearch() {
+  const input = document.getElementById('search-input');
+  const btn = document.getElementById('search-clear-btn');
+  if (input) {
+    input.value = '';
+    if (btn) btn.style.display = 'none';
+    {% if search_query %}
+    document.getElementById('search-form').submit();
+    {% else %}
+    input.focus();
+    {% endif %}
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  const input = document.getElementById('search-input');
+  const btn = document.getElementById('search-clear-btn');
+  if (input && btn) {
+    input.addEventListener('input', function() {
+      btn.style.display = this.value.trim().length > 0 ? 'flex' : 'none';
+    });
+  }
+});
+</script>
 </body>
 </html>

@@ -708,7 +708,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 5px 28px 5px 12px;
+  padding: 5px 32px 5px 12px;
   border-radius: 6px;
   font-size: 0.82rem;
   width: 260px;
@@ -727,17 +727,29 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .search-clear-btn {
   position: absolute;
-  right: 8px;
-  color: var(--text-dim);
-  font-size: 1.1rem;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ffffff !important;
+  font-size: 1.35rem;
+  font-weight: 700;
   line-height: 1;
   text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 2px 5px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.95;
+  transition: transform 0.15s ease, opacity 0.15s ease, color 0.15s ease;
 }
 
 .search-clear-btn:hover {
-  color: var(--text);
-  text-decoration: none;
+  color: var(--accent) !important;
+  opacity: 1;
+  transform: translateY(-50%) scale(1.2);
 }
 
 .topbar-bookmark-btn {
