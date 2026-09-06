@@ -269,6 +269,12 @@ def init_db():
                 (row["category"], "#888888"),
             )
 
+        # Migration: abbreviate Google News to G.News
+        try:
+            conn.execute("UPDATE feeds SET name = 'G.News' WHERE name = 'Google News'")
+        except Exception:
+            pass
+
         count = conn.execute("SELECT COUNT(*) c FROM feeds").fetchone()["c"]
         if count == 0:
             for name, url, cat in DEFAULT_FEEDS:

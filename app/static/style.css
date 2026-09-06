@@ -329,9 +329,14 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 .feed-name {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: var(--text-dim);
   font-weight: 500;
+}
+
+.date {
+  font-size: 0.68rem;
+  color: var(--text-dim);
 }
 
 .card-title {
@@ -646,11 +651,13 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
+  font-size: 0.72rem;
 }
 
 .card-grid.table-view .card-meta .date {
   white-space: nowrap;
   flex-shrink: 0;
+  font-size: 0.72rem;
 }
 
 .card-grid.table-view .card-body {
