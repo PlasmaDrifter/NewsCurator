@@ -30,55 +30,19 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 
 ## Features
 
-- **Dual Viewing Modes (Grid & Table)**:
-  - Instant toggle between a modern responsive card grid and a dense table list layout.
-  - Preference is automatically remembered across sessions via `localStorage`.
-- **Dynamic Category Styling & Custom Borders**:
-  - Assign custom HEX colors to individual categories (e.g., *Computing*, *Defense*, *Linux*, *Science*, *Space*, *World News*).
-  - Global card border toggle with customizable border width (px) and border opacity slider.
-- **Feed Aggregation & Background Polling**:
-  - Non-blocking asynchronous background polling via `feedparser`.
-  - Parses dates, links, summaries, and domains.
-  - Displays relative fetch timestamps (`29 m`, `59 m`, `90 m`, etc.).
-  - Manual on-demand refresh button.
-- **Comprehensive Feed & Category Management**:
-  - Add, edit, enable/disable, and delete RSS feed sources.
-  - Live article counter per feed source and relative last-fetched indicator.
-  - Inline category color picker and category renaming with automatic feed migration.
-- **Full-Card Direct Navigation & Read Tracking**:
-  - Clicking anywhere on an article card or table row opens the story in a new tab.
-  - Automatically tracks read-state with subtle opacity dimming to keep unread content front and center.
-- **Article Bookmarking & Dedicated Saved View**:
-  - Upper-right bookmark tag on every article card and table row.
-  - Independent bookmark click handling: toggles bookmark state asynchronously without unintentionally opening the article link.
-  - Dedicated bookmarks button in the navigation header directly next to the search bar.
-  - Saved articles are permanently immune to automatic retention pruning.
-- **Integrated Top Bar Search**:
-  - Centered search input directly in the navigation header.
-  - Dynamically searches across article titles and summaries.
-  - Seamlessly combines with category pills and source filters.
-- **Dynamic Infinite Scrolling**:
-  - Smooth asynchronous loading via modern `IntersectionObserver`.
-  - Automatically fetches and appends the next batch of articles as you scroll down the page.
-  - Seamlessly works in both Grid and Table view modes without page reloads or scroll resets.
-- **Configurable Refresh Interval (15, 30, 60 Min or Custom)**:
-  - Presets for 15 minutes, 30 minutes (Default), 60 minutes, or any custom minute duration.
-  - Dynamically updates the background polling loop without service restarts.
-- **Configurable Data Retention (7, 14, 30 Days)**:
-  - Selectable retention policy (7 Days, 14 Days [Default], or 30 Days) in the Manage Sources settings panel.
-  - Real-time display of the total saved article count.
-  - Automatic background purging on startup and scheduled feed refresh cycles (with immunity for bookmarked articles).
-- **Customizable Website Favicon**:
-  - 5 curated preset icons (Newspaper, RSS Wave, World Globe, Bookmark, Lightning).
-  - Custom icon upload support (PNG, SVG, ICO, JPG, WEBP) with persistent library listing and deletion.
-  - Dynamic cache-busting for instant browser tab icon updates.
-- **Private & Lightweight**:
-  - Rootless Podman container.
-  - SQLite backend operating with WAL mode (`journal_mode = WAL`, `synchronous = NORMAL`) for high-concurrency read/write operations.
-  - Zero cloud tracking or third-party telemetry.
-- **Systemd Quadlet Integration**:
-  - Native systemd service auto-generation via Podman Quadlet (`newscurator.container`).
-  - Automatic restart on failure and auto-update support.
+- **Dual Viewing Modes (Grid & Table)**
+- **Dynamic Category Styling & Custom Borders**
+- **Feed Aggregation & Background Polling**
+- **Comprehensive Feed & Category Management**
+- **Full-Card Direct Navigation & Read Tracking**
+- **Article Bookmarking & Dedicated Saved View**
+- **Integrated Top Bar Search**
+- **Dynamic Infinite Scrolling**
+- **Configurable Refresh Interval (15, 30, 60 Min or Custom)**
+- **Configurable Data Retention (7, 14, 30 Days)**
+- **Customizable Website Favicon**
+- **Private & Lightweight**
+- **Systemd Quadlet Integration**
 
 ---
 
