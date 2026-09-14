@@ -817,5 +817,76 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   to { transform: rotate(360deg); }
 }
 
+/* --- FAVICON PRESET SELECTOR --- */
+.favicon-preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #232734;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--text);
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  min-width: 82px;
+  text-decoration: none;
+}
 
+.favicon-preset-btn:hover {
+  border-color: var(--accent);
+  background: #2c3242;
+  transform: translateY(-2px);
+}
 
+.favicon-preset-btn.active {
+  border-color: var(--accent);
+  background: rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.25);
+}
+
+.favicon-preset-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.favicon-preset-btn.active .favicon-preset-title {
+  color: var(--text);
+}
+
+.favicon-card-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.favicon-delete-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #e11d48;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+}
+
+.favicon-delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.18);
+  background: #f43f5e;
+}

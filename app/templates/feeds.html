@@ -64,6 +64,61 @@
   </form>
 </div>
 
+<!-- Website Favicon Setting -->
+<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 14px 16px; border-radius: var(--radius);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+    <div>
+      <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Website Favicon</h3>
+      <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Choose from 5 preset icons or upload your own custom favicon</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; background: rgba(0, 0, 0, 0.2); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">
+      <span style="font-size: 0.8rem; color: var(--text-dim);">Active:</span>
+      <img src="{{ active_favicon }}?v={{ favicon_version }}" alt="Favicon" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle;">
+    </div>
+  </div>
+
+  <!-- Preset & Uploaded Favicons -->
+  <div style="display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; margin-bottom: 14px;">
+    {% for icon in preset_favicons %}
+    <form method="post" action="/settings/update-favicon" style="margin: 0;">
+      <input type="hidden" name="favicon" value="{{ icon.path }}">
+      <button type="submit" class="favicon-preset-btn {% if active_favicon == icon.path %}active{% endif %}" title="Set as favicon">
+        <img src="{{ icon.path }}" alt="{{ icon.title }}" style="width: 26px; height: 26px; object-fit: contain;">
+        <span class="favicon-preset-title">{{ icon.title }}</span>
+        {% if active_favicon == icon.path %}
+        <span style="font-size: 0.7rem; color: var(--accent); font-weight: 700;">Active</span>
+        {% endif %}
+      </button>
+    </form>
+    {% endfor %}
+
+    {% for custom in custom_favicons %}
+    <div class="favicon-card-wrap">
+      <form method="post" action="/settings/update-favicon" style="margin: 0; height: 100%;">
+        <input type="hidden" name="favicon" value="{{ custom.path }}">
+        <button type="submit" class="favicon-preset-btn {% if active_favicon == custom.path %}active{% endif %}" title="Set as favicon" style="width: 100%; height: 100%;">
+          <img src="{{ custom.path }}" alt="{{ custom.title }}" style="width: 26px; height: 26px; object-fit: contain;">
+          <span class="favicon-preset-title" style="max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ custom.title }}">{{ custom.title }}</span>
+          {% if active_favicon == custom.path %}
+          <span style="font-size: 0.7rem; color: var(--accent); font-weight: 700;">Active</span>
+          {% endif %}
+        </button>
+      </form>
+      <form method="post" action="/settings/delete-favicon/{{ custom.id }}" onsubmit="return confirm('Delete this custom icon?');" style="margin: 0;">
+        <button type="submit" class="favicon-delete-btn" title="Delete custom icon">&times;</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Upload Custom Favicon -->
+  <form method="post" action="/settings/upload-favicon" enctype="multipart/form-data" style="margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+    <span style="font-size: 0.82rem; color: var(--text-dim);">Upload Custom:</span>
+    <input type="file" name="file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" required style="font-size: 0.8rem; color: var(--text-dim); background: #2a2d36; border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; cursor: pointer;">
+    <button type="submit" class="refresh-btn" style="padding: 3px 12px; font-size: 0.8rem;">Upload & Apply</button>
+  </form>
+</div>
+
 <!-- Add Category -->
 <div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
   <div>

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import feedparser
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, UploadFile, File
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -115,6 +115,29 @@ def format_fetched_minutes(fetched_at_str):
 
 templates.env.filters["format_fetched_minutes"] = format_fetched_minutes
 
+PRESET_FAVICONS = [
+    {"name": "newspaper", "title": "Newspaper", "path": "/static/favicons/newspaper.svg"},
+    {"name": "rss", "title": "RSS Wave", "path": "/static/favicons/rss.svg"},
+    {"name": "globe", "title": "World Globe", "path": "/static/favicons/globe.svg"},
+    {"name": "bookmark", "title": "Bookmark", "path": "/static/favicons/bookmark.svg"},
+    {"name": "lightning", "title": "Lightning", "path": "/static/favicons/lightning.svg"},
+]
+
+
+def get_active_favicon():
+    with closing(get_db()) as conn:
+        return get_setting(conn, "favicon", "/static/favicons/newspaper.svg")
+
+
+def get_favicon_version():
+    with closing(get_db()) as conn:
+        return get_setting(conn, "favicon_version", "1")
+
+
+templates.env.globals["get_active_favicon"] = get_active_favicon
+templates.env.globals["get_favicon_version"] = get_favicon_version
+templates.env.globals["PRESET_FAVICONS"] = PRESET_FAVICONS
+
 
 DEFAULT_FEEDS = [
     # General computing / tech
@@ -155,6 +178,14 @@ def get_db():
 def get_categories(conn):
     rows = conn.execute("SELECT name, color FROM categories ORDER BY name").fetchall()
     return [dict(r) for r in rows]
+
+
+def get_custom_favicons(conn):
+    try:
+        rows = conn.execute("SELECT * FROM custom_favicons ORDER BY id ASC").fetchall()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
 
 
 def get_setting(conn, key, default="0"):
@@ -207,10 +238,20 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_size', '2')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('retention_days', '14')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('refresh_interval', '30')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon', '/static/favicons/newspaper.svg')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon_version', '1')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
                 color TEXT NOT NULL DEFAULT '#888888'
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS custom_favicons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                path TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
             )
         """)
         # Migrate: add color column if it doesn't exist yet
@@ -620,6 +661,9 @@ def feeds_page(request: Request):
         border_size = int(get_setting(conn, "border_size", "2"))
         retention_days = get_setting(conn, "retention_days", "14")
         refresh_interval = get_setting(conn, "refresh_interval", "30")
+        active_favicon = get_setting(conn, "favicon", "/static/favicons/newspaper.svg")
+        favicon_version = get_setting(conn, "favicon_version", "1")
+        custom_favicons = get_custom_favicons(conn)
         total_articles = conn.execute("SELECT COUNT(*) AS c FROM articles").fetchone()["c"]
     return templates.TemplateResponse("feeds.html", {
         "request": request,
@@ -630,8 +674,84 @@ def feeds_page(request: Request):
         "border_size": border_size,
         "retention_days": retention_days,
         "refresh_interval": refresh_interval,
+        "active_favicon": active_favicon,
+        "favicon_version": favicon_version,
+        "preset_favicons": PRESET_FAVICONS,
+        "custom_favicons": custom_favicons,
         "total_articles": f"{total_articles:,}",
     })
+
+
+@app.get("/favicon.ico")
+def favicon_ico():
+    with closing(get_db()) as conn:
+        fav = get_setting(conn, "favicon", "/static/favicons/newspaper.svg")
+    return RedirectResponse(url=fav, status_code=302)
+
+
+@app.post("/settings/update-favicon")
+def update_favicon(favicon: str = Form(...)):
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "favicon", favicon)
+        set_setting(conn, "favicon_version", str(int(time.time())))
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/upload-favicon")
+async def upload_favicon(file: UploadFile = File(...)):
+    if not file.filename:
+        return RedirectResponse("/feeds", status_code=303)
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in [".ico", ".png", ".svg", ".jpg", ".jpeg", ".webp"]:
+        return RedirectResponse("/feeds", status_code=303)
+
+    raw_stem = Path(file.filename).stem.replace("_", " ").replace("-", " ").strip()
+    title = raw_stem.title()[:18] if raw_stem else "Custom Icon"
+
+    fav_dir = BASE_DIR / "static" / "favicons" / "uploads"
+    fav_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = int(time.time())
+    dest_filename = f"fav_{timestamp}{ext}"
+    dest_path = fav_dir / dest_filename
+
+    content = await file.read()
+    with open(dest_path, "wb") as f:
+        f.write(content)
+
+    fav_url = f"/static/favicons/uploads/{dest_filename}"
+    with closing(get_db()) as conn, conn:
+        conn.execute(
+            "INSERT INTO custom_favicons (title, path, created_at) VALUES (?, ?, ?)",
+            (title, fav_url, datetime.now(timezone.utc).isoformat())
+        )
+        set_setting(conn, "favicon", fav_url)
+        set_setting(conn, "favicon_version", str(timestamp))
+
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/delete-favicon/{favicon_id}")
+def delete_favicon(favicon_id: int):
+    with closing(get_db()) as conn, conn:
+        row = conn.execute("SELECT * FROM custom_favicons WHERE id = ?", (favicon_id,)).fetchone()
+        if row:
+            current_fav = get_setting(conn, "favicon", "/static/favicons/newspaper.svg")
+            if current_fav == row["path"]:
+                set_setting(conn, "favicon", "/static/favicons/newspaper.svg")
+                set_setting(conn, "favicon_version", str(int(time.time())))
+
+            try:
+                rel_path = row["path"].lstrip("/")
+                file_path = BASE_DIR / rel_path
+                if file_path.exists():
+                    file_path.unlink()
+            except Exception as e:
+                print(f"Error removing favicon file: {e}")
+
+            conn.execute("DELETE FROM custom_favicons WHERE id = ?", (favicon_id,))
+    return RedirectResponse("/feeds", status_code=303)
 
 
 @app.post("/settings/update-borders")

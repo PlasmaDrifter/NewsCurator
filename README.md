@@ -23,7 +23,7 @@ Compact horizontal row list layout for quickly scanning through dozens of news a
 ![News Curator Table View](screenshots/table-view.png)
 
 ### 3. Manage Sources & Customization Panel
-Source management dashboard for adding RSS feeds, toggling feeds on/off, creating custom categories, modifying palette colors, tuning card border size and opacity, and configuring article retention:
+Source management dashboard for adding RSS feeds, toggling feeds on/off, creating custom categories, modifying palette colors, tuning card border size and opacity, selecting or uploading custom website favicons, and configuring article retention:
 ![News Curator Manage Sources](screenshots/manage-sources.png)
 
 ---
@@ -68,6 +68,10 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
   - Selectable retention policy (7 Days, 14 Days [Default], or 30 Days) in the Manage Sources settings panel.
   - Real-time display of the total saved article count.
   - Automatic background purging on startup and scheduled feed refresh cycles (with immunity for bookmarked articles).
+- **Customizable Website Favicon**:
+  - 5 curated preset icons (Newspaper, RSS Wave, World Globe, Bookmark, Lightning).
+  - Custom icon upload support (PNG, SVG, ICO, JPG, WEBP) with persistent library listing and deletion.
+  - Dynamic cache-busting for instant browser tab icon updates.
 - **Private & Lightweight**:
   - Rootless Podman container.
   - SQLite backend operating with WAL mode (`journal_mode = WAL`, `synchronous = NORMAL`) for high-concurrency read/write operations.
@@ -92,6 +96,7 @@ NewsCurator/
 │   ├── app/
 │   │   └── main.py                # FastAPI backend routes, background feed parser, DB models, API
 │   ├── static/
+│   │   ├── favicons/              # Preset website favicon SVG assets
 │   │   └── style.css              # Custom dark-theme styling, grid & table CSS, animations
 │   └── templates/
 │       ├── base.html              # Base Jinja2 layout, centered search box, and navigation bar
