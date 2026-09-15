@@ -27,6 +27,20 @@
   </form>
 </div>
 
+<!-- 3-Row Step Scrolling Setting -->
+<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">3-Row Step Scrolling</h3>
+    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Advance exactly 3 rows per mouse wheel notch in card and table view</p>
+  </div>
+  <form method="post" action="/settings/update-scroll" style="margin: 0; display: flex; align-items: center; gap: 16px;">
+    <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+      <input type="checkbox" name="three_row_scroll" {% if three_row_scroll %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; cursor: pointer;">
+      <span style="font-size: 0.85rem; font-weight: 600;">Enable</span>
+    </label>
+  </form>
+</div>
+
 <!-- Article Retention Setting -->
 <div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
   <div>

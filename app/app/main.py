@@ -523,6 +523,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         colored_borders = get_setting(conn, "colored_borders") == "1"
         border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
         border_size = int(get_setting(conn, "border_size", "2"))
+        three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -538,6 +539,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "colored_borders": colored_borders,
         "border_opacity": border_opacity,
         "border_size": border_size,
+        "three_row_scroll": three_row_scroll,
     })
 
 
@@ -665,6 +667,7 @@ def feeds_page(request: Request):
         favicon_version = get_setting(conn, "favicon_version", "1")
         custom_favicons = get_custom_favicons(conn)
         total_articles = conn.execute("SELECT COUNT(*) AS c FROM articles").fetchone()["c"]
+        three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
     return templates.TemplateResponse("feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -679,6 +682,7 @@ def feeds_page(request: Request):
         "preset_favicons": PRESET_FAVICONS,
         "custom_favicons": custom_favicons,
         "total_articles": f"{total_articles:,}",
+        "three_row_scroll": three_row_scroll,
     })
 
 
@@ -782,6 +786,15 @@ def update_interval(refresh_interval: int = Form(...)):
         refresh_interval = 1
     with closing(get_db()) as conn, conn:
         set_setting(conn, "refresh_interval", str(refresh_interval))
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-scroll")
+async def update_scroll(request: Request):
+    form = await request.form()
+    three_row_scroll = "1" if "three_row_scroll" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "three_row_scroll", three_row_scroll)
     return RedirectResponse("/feeds", status_code=303)
 
 

@@ -84,6 +84,7 @@ const isBookmarkedView = {{ is_bookmarked_view | tojson }};
 const coloredBorders = {{ colored_borders | tojson }};
 const borderOpacity = {{ border_opacity | tojson }};
 const borderSize = {{ border_size | tojson }};
+const threeRowScroll = {{ three_row_scroll | tojson }};
 
 function handleCardClick(event, card) {
   // If clicked on bookmark button, do not navigate
@@ -284,60 +285,62 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Discrete 3-row step scrolling: Row 4 moves to the exact spot Row 1 was at
-  let isWheelAnimating = false;
-  let wheelCooldownTimer = null;
+  if (threeRowScroll) {
+    let isWheelAnimating = false;
+    let wheelCooldownTimer = null;
 
-  function getThreeRowStep() {
-    const grid = document.querySelector('.card-grid');
-    if (!grid) return 768;
-    const isTable = grid.classList.contains('table-view');
-    const cards = grid.querySelectorAll('.card');
-    if (isTable) {
-      if (cards.length >= 4) {
-        return cards[3].offsetTop - cards[0].offsetTop;
+    function getThreeRowStep() {
+      const grid = document.querySelector('.card-grid');
+      if (!grid) return 768;
+      const isTable = grid.classList.contains('table-view');
+      const cards = grid.querySelectorAll('.card');
+      if (isTable) {
+        if (cards.length >= 4) {
+          return cards[3].offsetTop - cards[0].offsetTop;
+        }
+        return 174;
+      } else {
+        if (cards.length >= 13) {
+          return cards[12].offsetTop - cards[0].offsetTop;
+        }
+        return 768;
       }
-      return 174;
-    } else {
-      if (cards.length >= 13) {
-        return cards[12].offsetTop - cards[0].offsetTop;
-      }
-      return 768;
     }
+
+    window.addEventListener('wheel', function(e) {
+      if (e.target.closest('select, textarea, pre, input')) return;
+      if (Math.abs(e.deltaY) < 20) return;
+
+      e.preventDefault();
+
+      if (isWheelAnimating) return;
+
+      const step = getThreeRowStep();
+      if (step <= 0) return;
+
+      const currentY = window.scrollY;
+      let targetIndex = Math.round(currentY / step);
+
+      if (e.deltaY > 0) {
+        targetIndex += 1;
+      } else {
+        targetIndex = Math.max(0, targetIndex - 1);
+      }
+
+      const targetY = targetIndex * step;
+      isWheelAnimating = true;
+
+      window.scrollTo({
+        top: targetY,
+        behavior: 'smooth'
+      });
+
+      clearTimeout(wheelCooldownTimer);
+      wheelCooldownTimer = setTimeout(function() {
+        isWheelAnimating = false;
+      }, 220);
+    }, { passive: false });
   }
-
-  window.addEventListener('wheel', function(e) {
-    if (e.target.closest('select, textarea, pre, input')) return;
-    if (Math.abs(e.deltaY) < 20) return;
-
-    e.preventDefault();
-
-    if (isWheelAnimating) return;
-
-    const step = getThreeRowStep();
-    if (step <= 0) return;
-
-    const currentY = window.scrollY;
-    let targetIndex = Math.round(currentY / step);
-
-    if (e.deltaY > 0) {
-      targetIndex += 1;
-    } else {
-      targetIndex = Math.max(0, targetIndex - 1);
-    }
-
-    const targetY = targetIndex * step;
-    isWheelAnimating = true;
-
-    window.scrollTo({
-      top: targetY,
-      behavior: 'smooth'
-    });
-
-    clearTimeout(wheelCooldownTimer);
-    wheelCooldownTimer = setTimeout(function() {
-      isWheelAnimating = false;
-    }, 220);
-  }, { passive: false });
 });
 </script>
 
