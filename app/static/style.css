@@ -10,16 +10,9 @@
   --danger: #ff6b6b;
   --radius: 8px;
   --topbar-height: 38px;
-  --sticky-header-height: 80px;
 }
 
 * { box-sizing: border-box; }
-
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: var(--sticky-header-height);
-  scroll-snap-type: y proximity;
-}
 
 body {
   margin: 0;
@@ -275,8 +268,6 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 .card {
-  scroll-snap-align: start;
-  scroll-margin-top: var(--sticky-header-height);
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
