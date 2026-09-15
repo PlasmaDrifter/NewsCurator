@@ -282,6 +282,42 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     observer.observe(sentinel);
   }
+
+  // 3-row wheel tick scrolling calibrated with sticky header offset
+  let lastWheelTimestamp = 0;
+  window.addEventListener('wheel', function(e) {
+    if (e.target.closest('select, textarea, pre, input')) return;
+    if (Math.abs(e.deltaY) < 25) return;
+
+    const now = performance.now();
+    if (now - lastWheelTimestamp < 150) {
+      e.preventDefault();
+      return;
+    }
+    lastWheelTimestamp = now;
+
+    const grid = document.querySelector('.card-grid');
+    if (!grid) return;
+
+    const isTable = grid.classList.contains('table-view');
+    const sampleCard = grid.querySelector('.card');
+    let step = 0;
+
+    if (isTable) {
+      const rowHeight = sampleCard ? sampleCard.offsetHeight + 10 : 58;
+      step = 3 * rowHeight;
+    } else {
+      const rowHeight = sampleCard ? sampleCard.offsetHeight + 16 : 256;
+      step = 3 * rowHeight;
+    }
+
+    e.preventDefault();
+    const direction = e.deltaY > 0 ? 1 : -1;
+    window.scrollBy({
+      top: direction * step,
+      behavior: 'smooth'
+    });
+  }, { passive: false });
 });
 </script>
 
