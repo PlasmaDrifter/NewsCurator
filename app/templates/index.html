@@ -153,6 +153,46 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+let activeTargetIndex = null;
+let lastWheelTime = 0;
+
+function getThreeRowStep() {
+  const grid = document.querySelector('.card-grid');
+  if (!grid) return 768;
+  const isTable = grid.classList.contains('table-view');
+  const cards = grid.querySelectorAll('.card');
+  if (isTable) {
+    if (cards.length >= 4) {
+      return cards[3].offsetTop - cards[0].offsetTop;
+    }
+    return 174;
+  } else {
+    if (cards.length >= 13) {
+      return cards[12].offsetTop - cards[0].offsetTop;
+    }
+    return 768;
+  }
+}
+
+function getThreeRowTargetY(targetIndex) {
+  if (targetIndex <= 0) return 0;
+  const grid = document.querySelector('.card-grid');
+  if (!grid) return targetIndex * 768;
+  const isTable = grid.classList.contains('table-view');
+  const cards = grid.querySelectorAll('.card');
+  const cardsPerRow = isTable ? 1 : 4;
+  const targetCardIndex = targetIndex * 3 * cardsPerRow;
+  
+  if (cards.length > 0 && cards[0]) {
+    const baseOffset = cards[0].offsetTop;
+    if (targetCardIndex < cards.length && cards[targetCardIndex]) {
+      return cards[targetCardIndex].offsetTop - baseOffset;
+    }
+  }
+  
+  return targetIndex * getThreeRowStep();
+}
+
 async function loadMoreArticles() {
   if (isLoading || !hasMoreArticles) return;
   isLoading = true;
@@ -216,6 +256,20 @@ async function loadMoreArticles() {
     }
 
     hasMoreArticles = data.has_more;
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    if (sentinel) {
+      sentinel.style.minHeight = hasMoreArticles ? '80vh' : '0px';
+    }
+
+    if (activeTargetIndex !== null && (Date.now() - lastWheelTime < 1200)) {
+      const properY = getThreeRowTargetY(activeTargetIndex);
+      if (Math.abs(window.scrollY - properY) > 2) {
+        window.scrollTo({
+          top: properY,
+          behavior: 'smooth'
+        });
+      }
+    }
   } catch (err) {
     console.error('Error dynamically loading articles:', err);
   } finally {
@@ -267,8 +321,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const savedMode = localStorage.getItem('newscurator_view_mode') || 'grid';
   applyViewMode(savedMode);
 
-  // Smooth dynamic loading on scroll
+  // Dynamic loading on scroll with generous prefetch margin and scroll cushion
   const sentinel = document.getElementById('infinite-scroll-sentinel');
+  if (sentinel && hasMoreArticles) {
+    sentinel.style.minHeight = '80vh';
+  }
+
   if (sentinel && window.IntersectionObserver) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -278,34 +336,17 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }, {
       root: null,
-      rootMargin: '400px', // Pre-fetch next batch 400px before bottom
-      threshold: 0.1
+      rootMargin: '1600px', // Pre-fetch next batch 1600px before bottom so scroll buffer is never exhausted
+      threshold: 0.01
     });
     observer.observe(sentinel);
   }
 
   // Discrete 3-row step scrolling: Row 4 moves to the exact spot Row 1 was at
   if (threeRowScroll) {
+    let currentStepIndex = 0;
     let isWheelAnimating = false;
     let wheelCooldownTimer = null;
-
-    function getThreeRowStep() {
-      const grid = document.querySelector('.card-grid');
-      if (!grid) return 768;
-      const isTable = grid.classList.contains('table-view');
-      const cards = grid.querySelectorAll('.card');
-      if (isTable) {
-        if (cards.length >= 4) {
-          return cards[3].offsetTop - cards[0].offsetTop;
-        }
-        return 174;
-      } else {
-        if (cards.length >= 13) {
-          return cards[12].offsetTop - cards[0].offsetTop;
-        }
-        return 768;
-      }
-    }
 
     window.addEventListener('wheel', function(e) {
       if (e.target.closest('select, textarea, pre, input')) return;
@@ -313,21 +354,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
       e.preventDefault();
 
-      if (isWheelAnimating) return;
-
       const step = getThreeRowStep();
       if (step <= 0) return;
 
-      const currentY = window.scrollY;
-      let targetIndex = Math.round(currentY / step);
-
-      if (e.deltaY > 0) {
-        targetIndex += 1;
-      } else {
-        targetIndex = Math.max(0, targetIndex - 1);
+      if (!isWheelAnimating) {
+        currentStepIndex = Math.round(window.scrollY / step);
       }
 
-      const targetY = targetIndex * step;
+      if (e.deltaY > 0) {
+        currentStepIndex += 1;
+      } else {
+        currentStepIndex = Math.max(0, currentStepIndex - 1);
+      }
+
+      activeTargetIndex = currentStepIndex;
+      lastWheelTime = Date.now();
+      const targetY = getThreeRowTargetY(currentStepIndex);
       isWheelAnimating = true;
 
       window.scrollTo({
@@ -335,11 +377,27 @@ document.addEventListener('DOMContentLoaded', function() {
         behavior: 'smooth'
       });
 
+      if (hasMoreArticles && !isLoading) {
+        const remainingScroll = document.documentElement.scrollHeight - (targetY + window.innerHeight);
+        if (remainingScroll < 1600) {
+          loadMoreArticles();
+        }
+      }
+
       clearTimeout(wheelCooldownTimer);
       wheelCooldownTimer = setTimeout(function() {
         isWheelAnimating = false;
-      }, 220);
+      }, 250);
     }, { passive: false });
+
+    window.addEventListener('scroll', function() {
+      if (!isWheelAnimating) {
+        const step = getThreeRowStep();
+        if (step > 0) {
+          currentStepIndex = Math.round(window.scrollY / step);
+        }
+      }
+    }, { passive: true });
   }
 });
 </script>
