@@ -2,14 +2,9 @@
 {% block content %}
 
 <div class="settings-page">
-  <!-- Top header with stats -->
+  <!-- Top header -->
   <div class="settings-header">
     <h1>Manage Sources & Settings</h1>
-    <div class="settings-stats-badges">
-      <span class="settings-badge"><strong>{{ feeds|length }}</strong> Sources</span>
-      <span class="settings-badge"><strong>{{ categories|length }}</strong> Categories</span>
-      <span class="settings-badge"><strong>{{ total_articles }}</strong> Articles</span>
-    </div>
   </div>
 
   <!-- Row 1: General Preferences (2 Columns) -->
@@ -110,6 +105,19 @@
         <h3>Sync & Retention</h3>
       </div>
       <div class="settings-card-body">
+        <!-- Database & Library Stats -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Library Overview</div>
+            <div class="setting-item-desc">Tracked sources, categories, and cached articles</div>
+          </div>
+          <div class="settings-stats-badges">
+            <span class="settings-badge"><strong>{{ feeds|length }}</strong> Sources</span>
+            <span class="settings-badge"><strong>{{ categories|length }}</strong> Categories</span>
+            <span class="settings-badge"><strong>{{ total_articles }}</strong> Articles</span>
+          </div>
+        </div>
+
         <!-- Refresh Interval -->
         <div class="setting-item-row">
           <div class="setting-item-info">

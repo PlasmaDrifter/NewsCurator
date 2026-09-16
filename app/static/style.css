@@ -452,25 +452,36 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 .category-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.category-list form {
+  display: none;
 }
 
 .category-chip {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  padding: 3px 8px;
-  border-radius: 8px;
-  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  gap: 4px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .category-chip .badge {
   font-size: 0.75rem;
   padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .category-chip .color-form,
