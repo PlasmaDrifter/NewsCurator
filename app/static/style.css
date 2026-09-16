@@ -1236,20 +1236,20 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .border-controls-wrap {
   display: inline-flex;
   align-items: center;
+  gap: 12px;
+}
+
+.labeled-control {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
 }
 
-.compact-range {
-  width: 75px;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
-.range-val {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text);
-  min-width: 28px;
+.control-label {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #9da5b4;
+  white-space: nowrap;
 }
 
 .compact-num {

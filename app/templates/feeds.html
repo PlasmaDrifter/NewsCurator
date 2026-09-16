@@ -23,10 +23,32 @@
           </div>
           <form method="post" action="/settings/update-borders" class="setting-item-controls">
             <div class="border-controls-wrap">
-              <input type="range" name="border_opacity" min="0.1" max="1.0" step="0.1" value="{{ border_opacity }}" onchange="this.form.submit()" class="compact-range" title="Opacity">
-              <span class="range-val">{{ (border_opacity * 100)|int }}%</span>
-              <input type="number" name="border_size" min="1" max="10" value="{{ border_size }}" onchange="this.form.submit()" class="compact-num" title="Width (px)">
-              <span class="unit-label">px</span>
+              <div class="labeled-control">
+                <span class="control-label">Opacity</span>
+                <select name="border_opacity" onchange="this.form.submit()" class="compact-select" title="Border Opacity">
+                  <option value="1.0" {% if "%.1f"|format(border_opacity) == "1.0" %}selected{% endif %}>100%</option>
+                  <option value="0.9" {% if "%.1f"|format(border_opacity) == "0.9" %}selected{% endif %}>90%</option>
+                  <option value="0.8" {% if "%.1f"|format(border_opacity) == "0.8" %}selected{% endif %}>80%</option>
+                  <option value="0.7" {% if "%.1f"|format(border_opacity) == "0.7" %}selected{% endif %}>70%</option>
+                  <option value="0.6" {% if "%.1f"|format(border_opacity) == "0.6" %}selected{% endif %}>60%</option>
+                  <option value="0.5" {% if "%.1f"|format(border_opacity) == "0.5" %}selected{% endif %}>50%</option>
+                  <option value="0.4" {% if "%.1f"|format(border_opacity) == "0.4" %}selected{% endif %}>40%</option>
+                  <option value="0.3" {% if "%.1f"|format(border_opacity) == "0.3" %}selected{% endif %}>30%</option>
+                  <option value="0.2" {% if "%.1f"|format(border_opacity) == "0.2" %}selected{% endif %}>20%</option>
+                  <option value="0.1" {% if "%.1f"|format(border_opacity) == "0.1" %}selected{% endif %}>10%</option>
+                </select>
+              </div>
+              <div class="labeled-control">
+                <span class="control-label">Width</span>
+                <select name="border_size" onchange="this.form.submit()" class="compact-select" title="Border Width">
+                  <option value="1" {% if border_size == 1 %}selected{% endif %}>1 px</option>
+                  <option value="2" {% if border_size == 2 %}selected{% endif %}>2 px</option>
+                  <option value="3" {% if border_size == 3 %}selected{% endif %}>3 px</option>
+                  <option value="4" {% if border_size == 4 %}selected{% endif %}>4 px</option>
+                  <option value="5" {% if border_size == 5 %}selected{% endif %}>5 px</option>
+                  <option value="6" {% if border_size == 6 %}selected{% endif %}>6 px</option>
+                </select>
+              </div>
             </div>
             <label class="toggle-switch" title="Toggle colored card borders">
               <input type="checkbox" name="colored_borders" {% if colored_borders %}checked{% endif %} onchange="this.form.submit()">
