@@ -1,3 +1,7 @@
+import os
+import sys
+import shutil
+import re
 import sqlite3
 import time
 import threading
@@ -12,13 +16,52 @@ from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "data" / "news.db"
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+# Base directory for static files and templates (supports PyInstaller bundle extraction)
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    BUNDLE_DIR = Path(sys._MEIPASS)
+else:
+    BUNDLE_DIR = Path(__file__).resolve().parent.parent
+
+# Persistent data directory for SQLite DB and user-uploaded favicons
+def get_data_dir() -> Path:
+    env_dir = os.environ.get("NEWSCURATOR_DATA_DIR")
+    if env_dir:
+        return Path(env_dir).resolve()
+    if getattr(sys, "frozen", False):
+        if sys.platform == "win32":
+            base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+        elif sys.platform == "darwin":
+            base = Path.home() / "Library" / "Application Support"
+        else:
+            base = Path.home() / ".local" / "share"
+        return base / "newscurator"
+    return BUNDLE_DIR / "data"
+
+DATA_DIR = get_data_dir()
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = DATA_DIR / "news.db"
+
+# Persistent uploads directory
+UPLOAD_DIR = DATA_DIR / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Copy any legacy static uploads to persistent directory if not present
+bundle_uploads = BUNDLE_DIR / "static" / "favicons" / "uploads"
+if bundle_uploads.exists() and bundle_uploads.is_dir():
+    for item in bundle_uploads.iterdir():
+        dest = UPLOAD_DIR / item.name
+        if not dest.exists() and item.is_file():
+            try:
+                shutil.copy2(item, dest)
+            except Exception:
+                pass
 
 app = FastAPI(title="News Curator")
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+# Mount persistent uploads first so /static/favicons/uploads/... routes here seamlessly
+app.mount("/static/favicons/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploaded_favicons")
+app.mount("/static", StaticFiles(directory=str(BUNDLE_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(BUNDLE_DIR / "templates"))
 
 MONTH_ABBR = {
     1: "Jan.", 2: "Feb.", 3: "Mar.", 4: "Apr.", 5: "May",
@@ -51,6 +94,15 @@ def format_date(value):
     return str(value)[:25]
 
 templates.env.filters["format_date"] = format_date
+
+def to_css_class(name: str) -> str:
+    if not name:
+        return "default"
+    slug = re.sub(r'[^a-zA-Z0-9_-]+', '-', str(name)).strip('-')
+    return slug or "default"
+
+templates.env.filters["css_class"] = to_css_class
+
 
 def format_time_ago(iso_str):
     if not iso_str:
@@ -141,27 +193,27 @@ templates.env.globals["PRESET_FAVICONS"] = PRESET_FAVICONS
 
 DEFAULT_FEEDS = [
     # General computing / tech
-    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index", "computing"),
-    ("The Verge", "https://www.theverge.com/rss/index.xml", "computing"),
-    ("Hacker News (front page)", "https://hnrss.org/frontpage", "computing"),
-    ("TechCrunch", "https://techcrunch.com/feed/", "computing"),
+    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index", "Computing"),
+    ("The Verge", "https://www.theverge.com/rss/index.xml", "Computing"),
+    ("Hacker News (front page)", "https://hnrss.org/frontpage", "Computing"),
+    ("TechCrunch", "https://techcrunch.com/feed/", "Computing"),
     # Linux
-    ("Phoronix", "https://www.phoronix.com/rss.php", "linux"),
-    ("It's FOSS", "https://itsfoss.com/feed/", "linux"),
-    ("LWN.net Headlines", "https://lwn.net/headlines/rss", "linux"),
-    ("OMG! Ubuntu", "https://www.omgubuntu.co.uk/feed", "linux"),
+    ("Phoronix", "https://www.phoronix.com/rss.php", "Linux"),
+    ("It's FOSS", "https://itsfoss.com/feed/", "Linux"),
+    ("LWN.net Headlines", "https://lwn.net/headlines/rss", "Linux"),
+    ("OMG! Ubuntu", "https://www.omgubuntu.co.uk/feed", "Linux"),
     # Science
-    ("Science Daily", "https://www.sciencedaily.com/rss/top/science.xml", "science"),
-    ("Phys.org", "https://phys.org/rss-feed/", "science"),
-    ("Nature News", "https://www.nature.com/nature.rss", "science"),
+    ("Science Daily", "https://www.sciencedaily.com/rss/top/science.xml", "Science"),
+    ("Phys.org", "https://phys.org/rss-feed/", "Science"),
+    ("Nature News", "https://www.nature.com/nature.rss", "Science"),
     # Space
-    ("NASA Breaking News", "https://www.nasa.gov/news-release/feed/", "space"),
-    ("Space.com", "https://www.space.com/feeds/all", "space"),
-    ("SpaceNews", "https://spacenews.com/feed/", "space"),
+    ("NASA Breaking News", "https://www.nasa.gov/news-release/feed/", "Space"),
+    ("Space.com", "https://www.space.com/feeds/all", "Space"),
+    ("SpaceNews", "https://spacenews.com/feed/", "Space"),
     # Defense
-    ("Covert Shores", "http://www.hisutton.com/feed.xml", "defense"),
-    ("Defense One", "https://www.defenseone.com/rss/all/", "defense"),
-    ("ISW", "https://news.google.com/rss/search?q=site%3Aunderstandingwar.org&hl=en-US&gl=US&ceid=US%3Aen", "defense"),
+    ("Covert Shores", "http://www.hisutton.com/feed.xml", "Defense"),
+    ("Defense One", "https://www.defenseone.com/rss/all/", "Defense"),
+    ("ISW", "https://news.google.com/rss/search?q=site%3Aunderstandingwar.org&hl=en-US&gl=US&ceid=US%3Aen", "Defense"),
 ]
 
 
@@ -176,7 +228,13 @@ def get_db():
 
 
 def get_categories(conn):
-    rows = conn.execute("SELECT name, color FROM categories ORDER BY name").fetchall()
+    rows = conn.execute("""
+        SELECT c.name, c.color, c.position, COUNT(f.id) AS feed_count
+        FROM categories c
+        LEFT JOIN feeds f ON c.name = f.category
+        GROUP BY c.name
+        ORDER BY c.position ASC, c.rowid ASC
+    """).fetchall()
     return [dict(r) for r in rows]
 
 
@@ -245,7 +303,8 @@ def init_db():
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
-                color TEXT NOT NULL DEFAULT '#888888'
+                color TEXT NOT NULL DEFAULT '#888888',
+                position INTEGER NOT NULL DEFAULT 0
             )
         """)
         conn.execute("""
@@ -259,6 +318,19 @@ def init_db():
         # Migrate: add color column if it doesn't exist yet
         try:
             conn.execute("ALTER TABLE categories ADD COLUMN color TEXT NOT NULL DEFAULT '#888888'")
+        except Exception:
+            pass
+        # Migrate: add position column if it doesn't exist yet
+        try:
+            conn.execute("ALTER TABLE categories ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
+        # Initialize sequential positions if categories exist with all 0s
+        try:
+            cats = conn.execute("SELECT name, position FROM categories ORDER BY position ASC, rowid ASC").fetchall()
+            if cats and all(c["position"] == 0 for c in cats):
+                for idx, c in enumerate(cats):
+                    conn.execute("UPDATE categories SET position = ? WHERE name = ?", (idx, c["name"]))
         except Exception:
             pass
         conn.execute("""
@@ -298,19 +370,23 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_bookmarked ON articles(is_bookmarked)")
 
-        # Seed default categories with colors
+        # Seed default categories with colors if not already present (case-insensitive)
         for cat_name, cat_color in DEFAULT_CATEGORIES:
-            conn.execute(
-                "INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)",
-                (cat_name, cat_color),
-            )
+            exists = conn.execute("SELECT 1 FROM categories WHERE LOWER(name) = LOWER(?)", (cat_name,)).fetchone()
+            if not exists:
+                conn.execute(
+                    "INSERT INTO categories (name, color) VALUES (?, ?)",
+                    (cat_name, cat_color),
+                )
 
-        # Migration: seed any categories already in feeds table
+        # Migration: seed any categories already in feeds table if not present
         for row in conn.execute("SELECT DISTINCT category FROM feeds"):
-            conn.execute(
-                "INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)",
-                (row["category"], "#888888"),
-            )
+            exists = conn.execute("SELECT 1 FROM categories WHERE LOWER(name) = LOWER(?)", (row["category"],)).fetchone()
+            if not exists:
+                conn.execute(
+                    "INSERT INTO categories (name, color) VALUES (?, ?)",
+                    (row["category"], "#888888"),
+                )
 
         # Migration: abbreviate Google News to G.News
         try:
@@ -431,11 +507,12 @@ def cleanup_old_articles(days=None):
 
 
 def refresh_all_feeds():
-    with closing(get_db()) as conn, conn:
+    with closing(get_db()) as conn:
         feeds = conn.execute("SELECT * FROM feeds WHERE enabled = 1").fetchall()
         total_new = 0
         for feed in feeds:
-            total_new += fetch_feed(conn, feed)
+            with conn:
+                total_new += fetch_feed(conn, feed)
         print(f"Refresh complete: {total_new} new articles")
     return total_new
 
@@ -566,7 +643,8 @@ def api_articles(category: str = "all", source: str = "all", q: str = "", bookma
                 "domain": extract_domain(r["link"]),
                 "feed_name": r["feed_name"],
                 "feed_category": r["feed_category"],
-                "feed_category_title": (r["feed_category"] or "").replace("-", " ").title(),
+                "feed_category_title": r["feed_category"] or "",
+                "feed_category_css": to_css_class(r["feed_category"] or ""),
                 "category_color": r["category_color"] or "#888888",
                 "category_border_color": hex_to_rgba(r["category_color"] or "#888888", border_opacity),
                 "status": r["status"],
@@ -723,12 +801,9 @@ async def upload_favicon(file: UploadFile = File(...)):
     raw_stem = Path(file.filename).stem.replace("_", " ").replace("-", " ").strip()
     title = raw_stem.title()[:18] if raw_stem else "Custom Icon"
 
-    fav_dir = BASE_DIR / "static" / "favicons" / "uploads"
-    fav_dir.mkdir(parents=True, exist_ok=True)
-
     timestamp = int(time.time())
     dest_filename = f"fav_{timestamp}{ext}"
-    dest_path = fav_dir / dest_filename
+    dest_path = UPLOAD_DIR / dest_filename
 
     content = await file.read()
     with open(dest_path, "wb") as f:
@@ -757,10 +832,14 @@ def delete_favicon(favicon_id: int):
                 set_setting(conn, "favicon_version", str(int(time.time())))
 
             try:
-                rel_path = row["path"].lstrip("/")
-                file_path = BASE_DIR / rel_path
+                filename = Path(row["path"]).name
+                file_path = UPLOAD_DIR / filename
                 if file_path.exists():
                     file_path.unlink()
+                rel_path = row["path"].lstrip("/")
+                legacy_file = BUNDLE_DIR / rel_path
+                if legacy_file.exists():
+                    legacy_file.unlink()
             except Exception as e:
                 print(f"Error removing favicon file: {e}")
 
@@ -842,31 +921,41 @@ def dynamic_css():
         color = cat["color"]
         bg = hex_to_dark_bg(color, 0.15)
         text_color = get_contrast_text_color(color)
+        css_cls = to_css_class(name)
         lines.append(f"""
-.badge-{name} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
-.cat-btn-{name} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
-.cat-btn-{name}.active {{ background: {color}; color: {text_color}; border-color: {color}; }}
+.badge-{css_cls} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
+.cat-btn-{css_cls} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
+.cat-btn-{css_cls}.active {{ background: {color}; color: {text_color}; border-color: {color}; }}
+""")
+        if css_cls.lower() != css_cls:
+            lines.append(f"""
+.badge-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
+.cat-btn-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
+.cat-btn-{css_cls.lower()}.active {{ background: {color}; color: {text_color}; border-color: {color}; }}
 """)
     return Response(content="\n".join(lines), media_type="text/css")
 
 
 DEFAULT_CATEGORIES = [
-    ("computing", "#5b8cff"),
-    ("linux",     "#4caf50"),
-    ("science",   "#f07030"),
-    ("space",     "#9b59b6"),
+    ("Computing", "#5b8cff"),
+    ("Linux",     "#4caf50"),
+    ("Science",   "#f07030"),
+    ("Space",     "#9b59b6"),
 ]
 
 
 @app.post("/categories/add")
 def add_category(name: str = Form(...), color: str = Form("#888888")):
-    name = name.strip().lower().replace(" ", "-")
+    name = name.strip()
     if name:
         with closing(get_db()) as conn, conn:
-            conn.execute(
-                "INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)",
-                (name, color),
-            )
+            exists = conn.execute("SELECT 1 FROM categories WHERE LOWER(name) = LOWER(?)", (name,)).fetchone()
+            if not exists:
+                max_pos = conn.execute("SELECT COALESCE(MAX(position), -1) as m FROM categories").fetchone()["m"]
+                conn.execute(
+                    "INSERT INTO categories (name, color, position) VALUES (?, ?, ?)",
+                    (name, color, max_pos + 1),
+                )
     return RedirectResponse("/feeds", status_code=303)
 
 
@@ -890,19 +979,27 @@ def update_category_color(name: str, color: str = Form(...)):
 
 @app.post("/categories/{old_name}/edit")
 def edit_category(old_name: str, name: str = Form(...), color: str = Form(...)):
-    name = name.strip().lower().replace(" ", "-")
+    name = name.strip()
     if name:
         with closing(get_db()) as conn, conn:
             if name != old_name:
-                exists = conn.execute("SELECT 1 FROM categories WHERE name = ?", (name,)).fetchone()
-                if not exists:
-                    conn.execute("INSERT OR IGNORE INTO categories (name, color) VALUES (?, ?)", (name, color))
-                    conn.execute("UPDATE feeds SET category = ? WHERE category = ?", (name, old_name))
-                    conn.execute("DELETE FROM categories WHERE name = ?", (old_name,))
-                else:
-                    conn.execute("UPDATE categories SET color = ? WHERE name = ?", (color, name))
-                    conn.execute("UPDATE feeds SET category = ? WHERE category = ?", (name, old_name))
-                    conn.execute("DELETE FROM categories WHERE name = ?", (old_name,))
+                row = conn.execute("SELECT position FROM categories WHERE name = ?", (old_name,)).fetchone()
+                pos = row["position"] if row else 0
+                conn.execute("DELETE FROM categories WHERE name = ?", (old_name,))
+                conn.execute("INSERT OR REPLACE INTO categories (name, color, position) VALUES (?, ?, ?)", (name, color, pos))
+                conn.execute("UPDATE feeds SET category = ? WHERE category = ?", (name, old_name))
             else:
                 conn.execute("UPDATE categories SET color = ? WHERE name = ?", (color, old_name))
     return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/categories/reorder")
+async def reorder_categories(request: Request):
+    data = await request.json()
+    order = data.get("order", [])
+    if order and isinstance(order, list):
+        with closing(get_db()) as conn, conn:
+            for idx, cat_name in enumerate(order):
+                conn.execute("UPDATE categories SET position = ? WHERE name = ?", (idx, cat_name))
+    return JSONResponse({"status": "ok"})
+

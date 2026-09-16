@@ -213,7 +213,10 @@
     <!-- Card 3: Categories Manager (Unified: Add + Chips) -->
     <div class="settings-card">
       <div class="settings-card-header flex-between">
-        <h3>Categories</h3>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3>Categories</h3>
+          <span id="cat-reorder-status" class="reorder-status-badge" style="display: none;">Saved</span>
+        </div>
         <!-- Inline Add Category Form -->
         <form method="post" action="/categories/add" class="inline-add-cat-form">
           <input type="text" name="name" placeholder="New category" required class="compact-input" style="width: 135px;">
@@ -222,22 +225,15 @@
         </form>
       </div>
       <div class="settings-card-body">
-        <div class="category-list">
+        <div class="category-list" id="category-list">
           {% for c in categories %}
-          <form method="post" action="/categories/{{ c.name }}/edit" id="edit-cat-form-{{ c.name }}"></form>
-          <form method="post" action="/categories/{{ c.name }}/delete" id="delete-cat-form-{{ c.name }}"
-                onsubmit="return confirm('Delete {{ c.name }}? Only works if no feeds use it.');"></form>
-                
-          <div class="category-chip">
-            <span class="badge badge-{{ c.name }} view-cat-{{ c.name }}">{{ c.name }}</span>
-            <button type="button" onclick="enableCatEdit('{{ c.name }}')" class="chip-edit view-cat-{{ c.name }}" style="background:none; border:none; color:var(--text-dim); cursor:pointer; padding:0 2px; font-size:0.75rem;">Edit</button>
-            
-            <input type="text" name="name" value="{{ c.name }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }} edit-cat-name-input" style="display: none;" required>
-            <input type="color" name="color" value="{{ c.color }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }} edit-cat-color-picker" style="display: none;" title="Change color">
-            
-            <button type="submit" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--accent-2); cursor: pointer; padding: 0 2px; font-weight: bold; font-size: 0.85rem;" title="Save">✓</button>
-            <button type="submit" form="delete-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--danger); cursor: pointer; padding: 0 2px;" title="Delete">✕</button>
-            <button type="button" onclick="disableCatEdit('{{ c.name }}')" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 0.85rem;" title="Cancel">Cancel</button>
+          <div class="category-chip" draggable="true" data-name="{{ c.name }}" data-color="{{ c.color }}" data-feeds="{{ c.feed_count }}">
+            <span class="chip-drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
+            <span class="badge badge-{{ c.name|css_class }}">{{ c.name }}</span>
+            <button type="button" 
+                    onclick="openCategoryModal('{{ c.name|escape }}', '{{ c.color }}', {{ c.feed_count }})" 
+                    class="chip-edit-btn" 
+                    title="Edit category">Edit</button>
           </div>
           {% endfor %}
         </div>
@@ -255,7 +251,7 @@
             <input type="text" name="name" placeholder="Source name (e.g. Ars Technica)" required class="compact-input flex-1">
             <select name="category" class="compact-select">
               {% for c in categories %}
-              <option value="{{ c.name }}">{{ c.name|capitalize }}</option>
+              <option value="{{ c.name }}">{{ c.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -286,10 +282,10 @@
               <input type="text" name="name" value="{{ f.name }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
             </td>
             <td>
-              <span class="badge badge-{{ f.category }} view-mode-{{ f.id }}">{{ f.category }}</span>
+              <span class="badge badge-{{ f.category|css_class }} view-mode-{{ f.id }}">{{ f.category }}</span>
               <select name="category" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;">
                 {% for c in categories %}
-                <option value="{{ c.name }}" {% if c.name == f.category %}selected{% endif %}>{{ c.name|capitalize }}</option>
+                <option value="{{ c.name }}" {% if c.name == f.category %}selected{% endif %}>{{ c.name }}</option>
                 {% endfor %}
               </select>
             </td>
@@ -333,6 +329,55 @@
   </div>
 </div>
 
+<!-- Category Edit Modal -->
+<div id="category-edit-modal" class="modal-backdrop" style="display: none;" onclick="handleModalBackdropClick(event)">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">Edit Category</h3>
+        <span id="modal-cat-preview" class="badge">Category</span>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeCategoryModal()" title="Close">&times;</button>
+    </div>
+
+    <form id="category-edit-form" method="post" action="">
+      <div class="modal-body">
+        <div class="modal-field">
+          <label class="modal-label" for="modal-cat-name">Category Name</label>
+          <input type="text" id="modal-cat-name" name="name" class="modal-input" required autocomplete="off" placeholder="Category name">
+          <div class="modal-hint">Preserves exact capitalization and spacing.</div>
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label" for="modal-cat-color">Category Color</label>
+          <div class="modal-color-row">
+            <input type="color" id="modal-cat-color" name="color" class="modal-color-input" oninput="updateModalPreviewColor(this.value)">
+            <input type="text" id="modal-cat-color-hex" class="modal-hex-input" maxlength="7" placeholder="#5b8cff" oninput="handleHexInput(this.value)">
+          </div>
+        </div>
+
+        <div class="modal-info-box" id="modal-cat-info">
+          <span id="modal-cat-feeds-icon">&#128240;</span>
+          <span id="modal-cat-feeds-text">0 feeds assigned</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="modal-footer-left">
+          <button type="button" id="modal-delete-btn" class="btn-modal-danger" onclick="submitCategoryDelete()">Delete</button>
+        </div>
+        <div class="modal-footer-right">
+          <button type="button" class="btn-modal-secondary" onclick="closeCategoryModal()">Cancel</button>
+          <button type="submit" class="btn-modal-primary">Save Changes</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Hidden form for deletion -->
+    <form id="category-delete-form" method="post" action="" style="display: none;"></form>
+  </div>
+</div>
+
 <script>
 function enableEdit(id) {
   document.querySelectorAll('.view-mode-' + id).forEach(el => el.style.display = 'none');
@@ -342,14 +387,95 @@ function disableEdit(id) {
   document.querySelectorAll('.view-mode-' + id).forEach(el => el.style.display = '');
   document.querySelectorAll('.edit-mode-' + id).forEach(el => el.style.display = 'none');
 }
-function enableCatEdit(name) {
-  document.querySelectorAll('.view-cat-' + name).forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.edit-cat-' + name).forEach(el => el.style.display = '');
+
+let activeEditCategory = null;
+
+function openCategoryModal(name, color, feedCount) {
+  activeEditCategory = name;
+  const modal = document.getElementById('category-edit-modal');
+  const nameInput = document.getElementById('modal-cat-name');
+  const colorInput = document.getElementById('modal-cat-color');
+  const hexInput = document.getElementById('modal-cat-color-hex');
+  const preview = document.getElementById('modal-cat-preview');
+  const feedsText = document.getElementById('modal-cat-feeds-text');
+  const deleteBtn = document.getElementById('modal-delete-btn');
+  const editForm = document.getElementById('category-edit-form');
+  const deleteForm = document.getElementById('category-delete-form');
+
+  editForm.action = '/categories/' + encodeURIComponent(name) + '/edit';
+  deleteForm.action = '/categories/' + encodeURIComponent(name) + '/delete';
+
+  nameInput.value = name;
+  colorInput.value = color || '#5b8cff';
+  hexInput.value = color || '#5b8cff';
+
+  preview.textContent = name;
+  preview.style.backgroundColor = color || '#5b8cff';
+  preview.style.color = '#ffffff';
+
+  nameInput.oninput = function() {
+    preview.textContent = this.value || 'Category';
+  };
+
+  if (feedCount > 0) {
+    feedsText.textContent = feedCount + (feedCount === 1 ? ' feed is assigned to this category.' : ' feeds are assigned to this category.');
+    deleteBtn.disabled = true;
+    deleteBtn.title = 'Cannot delete category while feeds are using it. Reassign or delete the feeds first.';
+    deleteBtn.classList.add('disabled');
+  } else {
+    feedsText.textContent = 'No feeds assigned. This category can safely be deleted.';
+    deleteBtn.disabled = false;
+    deleteBtn.title = 'Delete this category';
+    deleteBtn.classList.remove('disabled');
+  }
+
+  modal.style.display = 'flex';
+  setTimeout(() => nameInput.focus(), 50);
 }
-function disableCatEdit(name) {
-  document.querySelectorAll('.view-cat-' + name).forEach(el => el.style.display = '');
-  document.querySelectorAll('.edit-cat-' + name).forEach(el => el.style.display = 'none');
+
+function closeCategoryModal() {
+  const modal = document.getElementById('category-edit-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  activeEditCategory = null;
 }
+
+function handleModalBackdropClick(e) {
+  if (e.target.id === 'category-edit-modal') {
+    closeCategoryModal();
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeCategoryModal();
+  }
+});
+
+function updateModalPreviewColor(color) {
+  const preview = document.getElementById('modal-cat-preview');
+  const hexInput = document.getElementById('modal-cat-color-hex');
+  if (preview) preview.style.backgroundColor = color;
+  if (hexInput) hexInput.value = color;
+}
+
+function handleHexInput(val) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    const colorInput = document.getElementById('modal-cat-color');
+    const preview = document.getElementById('modal-cat-preview');
+    if (colorInput) colorInput.value = val;
+    if (preview) preview.style.backgroundColor = val;
+  }
+}
+
+function submitCategoryDelete() {
+  if (!activeEditCategory) return;
+  if (confirm('Are you sure you want to delete category "' + activeEditCategory + '"?')) {
+    document.getElementById('category-delete-form').submit();
+  }
+}
+
 function handleIntervalPreset(val) {
   const customWrap = document.getElementById('custom-interval-wrap');
   const input = document.getElementById('custom_interval_input');
@@ -363,6 +489,7 @@ function handleIntervalPreset(val) {
     form.submit();
   }
 }
+
 function updateFaviconFileName(input) {
   const label = document.getElementById('fav-file-name');
   if (label) {
@@ -375,6 +502,104 @@ function updateFaviconFileName(input) {
     }
   }
 }
+
+// Category drag and drop reordering
+(function initCategoryDragDrop() {
+  const list = document.getElementById('category-list');
+  if (!list) return;
+
+  let draggedChip = null;
+
+  list.addEventListener('dragstart', (e) => {
+    const chip = e.target.closest('.category-chip');
+    if (!chip) return;
+    
+    // Do not allow dragging if currently editing this chip
+    const editInput = chip.querySelector('.edit-cat-name-input');
+    if (editInput && editInput.style.display !== 'none') {
+      e.preventDefault();
+      return;
+    }
+
+    draggedChip = chip;
+    chip.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', chip.dataset.name);
+  });
+
+  list.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const targetChip = e.target.closest('.category-chip');
+    if (!targetChip || targetChip === draggedChip) return;
+
+    list.querySelectorAll('.category-chip').forEach(c => c.classList.remove('drag-over'));
+    targetChip.classList.add('drag-over');
+  });
+
+  list.addEventListener('dragleave', (e) => {
+    const targetChip = e.target.closest('.category-chip');
+    if (targetChip) {
+      targetChip.classList.remove('drag-over');
+    }
+  });
+
+  list.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const targetChip = e.target.closest('.category-chip');
+    if (!targetChip || !draggedChip || targetChip === draggedChip) return;
+
+    targetChip.classList.remove('drag-over');
+
+    // Determine insertion position
+    const chips = Array.from(list.querySelectorAll('.category-chip'));
+    const draggedIdx = chips.indexOf(draggedChip);
+    const targetIdx = chips.indexOf(targetChip);
+
+    if (draggedIdx < targetIdx) {
+      targetChip.after(draggedChip);
+    } else {
+      targetChip.before(draggedChip);
+    }
+
+    saveCategoryOrder();
+  });
+
+  list.addEventListener('dragend', () => {
+    if (draggedChip) {
+      draggedChip.classList.remove('dragging');
+      draggedChip = null;
+    }
+    list.querySelectorAll('.category-chip').forEach(c => c.classList.remove('drag-over'));
+  });
+
+  function saveCategoryOrder() {
+    const orderedChips = Array.from(list.querySelectorAll('.category-chip'));
+    const order = orderedChips.map(c => c.dataset.name).filter(Boolean);
+
+    fetch('/categories/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: order })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        const badge = document.getElementById('cat-reorder-status');
+        if (badge) {
+          badge.style.display = 'inline-block';
+          clearTimeout(badge._timer);
+          badge._timer = setTimeout(() => {
+            badge.style.display = 'none';
+          }, 2000);
+        }
+      }
+    })
+    .catch(err => {
+      console.error('Error saving category order:', err);
+    });
+  }
+})();
 </script>
 
 {% endblock %}

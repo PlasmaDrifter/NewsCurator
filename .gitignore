@@ -5,3 +5,9 @@ __pycache__/
 .DS_Store
 .venv/
 *.log
+build/
+dist/
+*.tar.gz
+*.zip
+app/static/favicons/uploads/
+

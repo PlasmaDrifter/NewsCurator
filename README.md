@@ -41,6 +41,8 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 - **Configurable Refresh Interval (15, 30, 60 Min or Custom)**
 - **Configurable Data Retention (7, 14, 30 Days)**
 - **Customizable Website Favicon**
+- **Category Drag-and-Drop Reordering & Modal Editor**
+- **Standalone Desktop Application Support (pywebview & PyInstaller)**
 - **Private & Lightweight**
 - **Systemd Quadlet Integration**
 
@@ -51,8 +53,10 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 ```text
 NewsCurator/
 ├── README.md                      # Documentation & overview
+├── desktop.py                     # Standalone desktop application launcher (pywebview)
+├── NewsCurator.spec               # PyInstaller standalone build configuration
+├── build_standalone.sh            # Standalone binary and archive packaging script
 ├── newscurator.container          # Podman Quadlet systemd container definition
-├── inspect.json                   # podman inspect output for the running container
 ├── .gitignore                     # Git ignore rules for python cache & artifacts
 ├── app/                           # FastAPI Application Source Code
 │   ├── Containerfile              # Podman/Docker image build definition
@@ -181,6 +185,29 @@ podman run -d \
 ```
 
 The web dashboard will be available at: **`http://localhost:5006`** (or `http://<server-ip>:5006`).
+
+---
+
+### 5. Run as Standalone Desktop App
+
+NewsCurator can also run as an independent desktop application with a native window:
+
+1. **Pre-built Standalone Binary**:
+   Download `NewsCurator-v0.7.2-linux-x86_64.tar.gz` from [GitHub Releases](https://github.com/PlasmaDrifter/NewsCurator/releases), extract, and execute:
+   ```bash
+   ./NewsCurator
+   ```
+
+2. **Run from Source via Desktop Launcher**:
+   ```bash
+   pip install pywebview
+   python3 desktop.py
+   ```
+
+3. **Build Binary Locally**:
+   ```bash
+   ./build_standalone.sh
+   ```
 
 ---
 

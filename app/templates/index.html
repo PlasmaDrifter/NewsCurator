@@ -5,7 +5,7 @@
   <div class="cat-buttons">
     <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}" class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}">All</a>
     {% for c in categories %}
-    <a href="/?category={{ c.name }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}" class="cat-btn cat-btn-{{ c.name }} {% if current_category == c.name %}active{% endif %}">{{ c.name|replace('-', ' ')|title }}</a>
+    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}" class="cat-btn cat-btn-{{ c.name|css_class }} {% if current_category == c.name %}active{% endif %}">{{ c.name }}</a>
     {% endfor %}
   </div>
 
@@ -45,10 +45,10 @@
     </button>
 
     <div class="card-meta">
-         <span class="cat-btn cat-btn-{{ a.feed_category }} post-category">
-             {{ a.feed_category|replace('-', ' ')|title }}
-        </span>
-      <span class="feed-name">{{ a.feed_name }}</span>
+         <span class="cat-btn cat-btn-{{ a.feed_category|css_class }} post-category">
+             {{ a.feed_category }}
+         </span>
+       <span class="feed-name">{{ a.feed_name }}</span>
       {% if a.published %}<span class="date">{{ a.published | format_date }}</span>{% endif %}
     </div>
     <div class="card-body">
@@ -242,8 +242,8 @@ async function loadMoreArticles() {
             <span class="bookmark-tag-icon">🔖</span>
           </button>
           <div class="card-meta">
-            <span class="cat-btn cat-btn-${a.feed_category} post-category">
-              ${escapeHtml(a.feed_category_title)}
+            <span class="cat-btn cat-btn-${escapeHtml(a.feed_category_css || a.feed_category)} post-category">
+              ${escapeHtml(a.feed_category_title || a.feed_category || '')}
             </span>
             <span class="feed-name">${escapeHtml(a.feed_name)}</span>
             ${a.published_formatted ? `<span class="date">${escapeHtml(a.published_formatted)}</span>` : ''}
