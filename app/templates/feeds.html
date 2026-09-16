@@ -181,8 +181,8 @@
             <span class="badge badge-{{ c.name }} view-cat-{{ c.name }}">{{ c.name }}</span>
             <button type="button" onclick="enableCatEdit('{{ c.name }}')" class="chip-edit view-cat-{{ c.name }}" style="background:none; border:none; color:var(--text-dim); cursor:pointer; padding:0 2px; font-size:0.75rem;">Edit</button>
             
-            <input type="text" name="name" value="{{ c.name }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.75rem; width: 80px;" required>
-            <input type="color" name="color" value="{{ c.color }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); padding: 0; cursor: pointer; background: none;">
+            <input type="text" name="name" value="{{ c.name }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }} edit-cat-name-input" style="display: none;" required>
+            <input type="color" name="color" value="{{ c.color }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }} edit-cat-color-picker" style="display: none;" title="Change color">
             
             <button type="submit" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--accent-2); cursor: pointer; padding: 0 2px; font-weight: bold; font-size: 0.85rem;" title="Save">✓</button>
             <button type="submit" form="delete-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--danger); cursor: pointer; padding: 0 2px;" title="Delete">✕</button>
