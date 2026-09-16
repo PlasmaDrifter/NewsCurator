@@ -85,6 +85,7 @@ const coloredBorders = {{ colored_borders | tojson }};
 const borderOpacity = {{ border_opacity | tojson }};
 const borderSize = {{ border_size | tojson }};
 const threeRowScroll = {{ three_row_scroll | tojson }};
+const stepScrollRows = {{ step_scroll_rows | tojson }};
 const openInNewTab = {{ open_in_new_tab | tojson }};
 
 function handleCardClick(event, card) {
@@ -163,30 +164,33 @@ let lastWheelTime = 0;
 
 function getThreeRowStep() {
   const grid = document.querySelector('.card-grid');
-  if (!grid) return 768;
+  const rows = (typeof stepScrollRows === 'number' && stepScrollRows > 0) ? stepScrollRows : 3;
+  if (!grid) return rows * 256;
   const isTable = grid.classList.contains('table-view');
   const cards = grid.querySelectorAll('.card');
   if (isTable) {
-    if (cards.length >= 4) {
-      return cards[3].offsetTop - cards[0].offsetTop;
+    if (cards.length > rows) {
+      return cards[rows].offsetTop - cards[0].offsetTop;
     }
-    return 174;
+    return rows * 58;
   } else {
-    if (cards.length >= 13) {
-      return cards[12].offsetTop - cards[0].offsetTop;
+    const targetIdx = rows * 4;
+    if (cards.length > targetIdx) {
+      return cards[targetIdx].offsetTop - cards[0].offsetTop;
     }
-    return 768;
+    return rows * 256;
   }
 }
 
 function getThreeRowTargetY(targetIndex) {
   if (targetIndex <= 0) return 0;
   const grid = document.querySelector('.card-grid');
-  if (!grid) return targetIndex * 768;
+  const rows = (typeof stepScrollRows === 'number' && stepScrollRows > 0) ? stepScrollRows : 3;
+  if (!grid) return targetIndex * rows * 256;
   const isTable = grid.classList.contains('table-view');
   const cards = grid.querySelectorAll('.card');
   const cardsPerRow = isTable ? 1 : 4;
-  const targetCardIndex = targetIndex * 3 * cardsPerRow;
+  const targetCardIndex = targetIndex * rows * cardsPerRow;
   
   if (cards.length > 0 && cards[0]) {
     const baseOffset = cards[0].offsetTop;

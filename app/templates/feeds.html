@@ -35,14 +35,18 @@
           </form>
         </div>
 
-        <!-- 3-Row Step Scrolling -->
+        <!-- Step Scrolling -->
         <div class="setting-item-row">
           <div class="setting-item-info">
-            <div class="setting-item-title">3-Row Step Scrolling</div>
-            <div class="setting-item-desc">Advance 3 rows per wheel notch (Row 4 aligns to Row 1)</div>
+            <div class="setting-item-title">Step Scrolling</div>
+            <div class="setting-item-desc">Advance 3 or 4 rows per wheel notch (next row aligns to Row 1)</div>
           </div>
           <form method="post" action="/settings/update-scroll" class="setting-item-controls">
-            <label class="toggle-switch" title="Toggle 3-row step scrolling">
+            <select name="step_scroll_rows" onchange="this.form.submit()" class="compact-select" title="Rows per wheel notch">
+              <option value="3" {% if step_scroll_rows == "3" %}selected{% endif %}>3 Rows</option>
+              <option value="4" {% if step_scroll_rows == "4" %}selected{% endif %}>4 Rows</option>
+            </select>
+            <label class="toggle-switch" title="Toggle step scrolling">
               <input type="checkbox" name="three_row_scroll" {% if three_row_scroll %}checked{% endif %} onchange="this.form.submit()">
               <span class="toggle-slider"></span>
             </label>

@@ -241,6 +241,7 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon', '/static/favicons/newspaper.svg')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon_version', '1')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('open_in_new_tab', '1')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('step_scroll_rows', '3')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -526,6 +527,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         border_size = int(get_setting(conn, "border_size", "2"))
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
+        step_scroll_rows = int(get_setting(conn, "step_scroll_rows", "3"))
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -543,6 +545,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "border_size": border_size,
         "three_row_scroll": three_row_scroll,
         "open_in_new_tab": open_in_new_tab,
+        "step_scroll_rows": step_scroll_rows,
     })
 
 
@@ -672,6 +675,7 @@ def feeds_page(request: Request):
         total_articles = conn.execute("SELECT COUNT(*) AS c FROM articles").fetchone()["c"]
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
+        step_scroll_rows = get_setting(conn, "step_scroll_rows", "3")
     return templates.TemplateResponse("feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -688,6 +692,7 @@ def feeds_page(request: Request):
         "total_articles": f"{total_articles:,}",
         "three_row_scroll": three_row_scroll,
         "open_in_new_tab": open_in_new_tab,
+        "step_scroll_rows": step_scroll_rows,
     })
 
 
@@ -798,8 +803,11 @@ def update_interval(refresh_interval: int = Form(...)):
 async def update_scroll(request: Request):
     form = await request.form()
     three_row_scroll = "1" if "three_row_scroll" in form else "0"
+    step_scroll_rows = form.get("step_scroll_rows", "3")
     with closing(get_db()) as conn, conn:
         set_setting(conn, "three_row_scroll", three_row_scroll)
+        if step_scroll_rows in ["3", "4"]:
+            set_setting(conn, "step_scroll_rows", step_scroll_rows)
     return RedirectResponse("/feeds", status_code=303)
 
 
