@@ -606,7 +606,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = int(get_setting(conn, "step_scroll_rows", "3"))
 
-    return templates.TemplateResponse("index.html", {
+    return templates.TemplateResponse(request, "index.html", {
         "request": request,
         "articles": articles,
         "has_more": has_more,
@@ -754,7 +754,7 @@ def feeds_page(request: Request):
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = get_setting(conn, "step_scroll_rows", "3")
-    return templates.TemplateResponse("feeds.html", {
+    return templates.TemplateResponse(request, "feeds.html", {
         "request": request,
         "feeds": feeds,
         "categories": categories,
