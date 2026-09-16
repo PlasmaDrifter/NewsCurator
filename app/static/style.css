@@ -579,9 +579,11 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .feeds-table th {
   color: var(--text-dim);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .feeds-table td form {
@@ -1090,8 +1092,9 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .settings-card-header {
   padding: 8px 14px;
-  background: var(--bg-elevated);
+  background: #171a21;
   border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1102,10 +1105,29 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .settings-card-header h3 {
   margin: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: 0.01em;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+}
+
+.header-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(91, 140, 255, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(91, 140, 255, 0.3);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  letter-spacing: normal;
+  vertical-align: middle;
 }
 
 .settings-card-body {
@@ -1140,14 +1162,15 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 .setting-item-title {
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  color: var(--text);
+  color: #ffffff;
+  letter-spacing: 0.01em;
 }
 
 .setting-item-desc {
   font-size: 0.74rem;
-  color: var(--text-dim);
+  color: #8f96a3;
   margin-top: 2px;
 }
 
