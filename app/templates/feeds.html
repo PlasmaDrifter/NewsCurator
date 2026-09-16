@@ -1,249 +1,278 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Manage Sources</h1>
-
-<!-- Colored Card Borders Toggle -->
-<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-  <div>
-    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Colored Card Borders</h3>
-    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Draw a thin border around each post matching its category color</p>
-  </div>
-  <form method="post" action="/settings/update-borders" style="margin: 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 0.85rem; color: var(--text-dim);">Opacity:</span>
-      <input type="range" name="border_opacity" min="0.1" max="1.0" step="0.1" value="{{ border_opacity }}" onchange="this.form.submit()" style="width: 100px; cursor: pointer; accent-color: var(--accent);">
-      <span style="font-size: 0.85rem; font-weight: 600; min-width: 28px;">{{ (border_opacity * 100)|int }}%</span>
-    </div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <span style="font-size: 0.85rem; color: var(--text-dim);">Size:</span>
-      <input type="number" name="border_size" min="1" max="10" value="{{ border_size }}" onchange="this.form.submit()" style="width: 50px; background: #2a2d36; color: #c0c4cc; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.85rem; font-weight: 600; text-align: center;">
-      <span style="font-size: 0.85rem; color: var(--text-dim);">px</span>
-    </div>
-    <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-      <input type="checkbox" name="colored_borders" {% if colored_borders %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; cursor: pointer;">
-      <span style="font-size: 0.85rem; font-weight: 600;">Enable</span>
-    </label>
-  </form>
-</div>
-
-<!-- 3-Row Step Scrolling Setting -->
-<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-  <div>
-    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">3-Row Step Scrolling</h3>
-    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Advance exactly 3 rows per mouse wheel notch in card and table view</p>
-  </div>
-  <form method="post" action="/settings/update-scroll" style="margin: 0; display: flex; align-items: center; gap: 16px;">
-    <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-      <input type="checkbox" name="three_row_scroll" {% if three_row_scroll %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; cursor: pointer;">
-      <span style="font-size: 0.85rem; font-weight: 600;">Enable</span>
-    </label>
-  </form>
-</div>
-
-<!-- Article Retention Setting -->
-<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-  <div>
-    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Article Retention</h3>
-    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Automatically purge articles older than the selected retention period</p>
-  </div>
-  <form method="post" action="/settings/update-retention" style="margin: 0; display: flex; align-items: center; gap: 14px;">
-    <span style="font-size: 0.85rem; color: var(--text-dim);">Total Saved: <strong style="color: var(--text);">{{ total_articles }}</strong> articles</span>
-    <select name="retention_days" onchange="this.form.submit()" style="background: #2a2d36; color: #c0c4cc; border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer; outline: none;">
-      <option value="7" {% if retention_days == "7" %}selected{% endif %}>7 Days</option>
-      <option value="14" {% if retention_days == "14" %}selected{% endif %}>14 Days (Default)</option>
-      <option value="30" {% if retention_days == "30" %}selected{% endif %}>30 Days</option>
-    </select>
-  </form>
-</div>
-
-<!-- Refresh Interval Setting -->
-<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-  <div>
-    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Refresh Interval</h3>
-    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">How often background feeds automatically poll and fetch new articles</p>
-  </div>
-  <form method="post" action="/settings/update-interval" id="interval-form" style="margin: 0; display: flex; align-items: center; gap: 10px;">
-    <select id="interval_preset" onchange="handleIntervalPreset(this.value)" style="background: #2a2d36; color: #c0c4cc; border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer; outline: none;">
-      <option value="15" {% if refresh_interval == "15" %}selected{% endif %}>15 Minutes</option>
-      <option value="30" {% if refresh_interval == "30" %}selected{% endif %}>30 Minutes (Default)</option>
-      <option value="60" {% if refresh_interval == "60" %}selected{% endif %}>60 Minutes</option>
-      <option value="custom" {% if refresh_interval not in ["15", "30", "60"] %}selected{% endif %}>Custom...</option>
-    </select>
-    <div id="custom-interval-wrap" style="display: {% if refresh_interval not in ['15', '30', '60'] %}flex{% else %}none{% endif %}; align-items: center; gap: 6px;">
-      <input type="number" name="refresh_interval" id="custom_interval_input" min="1" max="1440" value="{{ refresh_interval }}" style="width: 65px; background: #2a2d36; color: #c0c4cc; border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-size: 0.85rem; font-weight: 600; text-align: center;">
-      <span style="font-size: 0.85rem; color: var(--text-dim);">min</span>
-      <button type="submit" class="refresh-btn" style="padding: 3px 10px; font-size: 0.8rem;">Save</button>
-    </div>
-  </form>
-</div>
-
-<!-- Website Favicon Setting -->
-<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 14px 16px; border-radius: var(--radius);">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
-    <div>
-      <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Website Favicon</h3>
-      <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Choose from 5 preset icons or upload your own custom favicon</p>
-    </div>
-    <div style="display: flex; align-items: center; gap: 8px; background: rgba(0, 0, 0, 0.2); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">
-      <span style="font-size: 0.8rem; color: var(--text-dim);">Active:</span>
-      <img src="{{ active_favicon }}?v={{ favicon_version }}" alt="Favicon" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle;">
+<div class="settings-page">
+  <!-- Top header with stats -->
+  <div class="settings-header">
+    <h1>Manage Sources & Settings</h1>
+    <div class="settings-stats-badges">
+      <span class="settings-badge"><strong>{{ feeds|length }}</strong> Sources</span>
+      <span class="settings-badge"><strong>{{ categories|length }}</strong> Categories</span>
+      <span class="settings-badge"><strong>{{ total_articles }}</strong> Articles</span>
     </div>
   </div>
 
-  <!-- Preset & Uploaded Favicons -->
-  <div style="display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; margin-bottom: 14px;">
-    {% for icon in preset_favicons %}
-    <form method="post" action="/settings/update-favicon" style="margin: 0;">
-      <input type="hidden" name="favicon" value="{{ icon.path }}">
-      <button type="submit" class="favicon-preset-btn {% if active_favicon == icon.path %}active{% endif %}" title="Set as favicon">
-        <img src="{{ icon.path }}" alt="{{ icon.title }}" style="width: 26px; height: 26px; object-fit: contain;">
-        <span class="favicon-preset-title">{{ icon.title }}</span>
-        {% if active_favicon == icon.path %}
-        <span style="font-size: 0.7rem; color: var(--accent); font-weight: 700;">Active</span>
-        {% endif %}
-      </button>
-    </form>
-    {% endfor %}
+  <!-- Row 1: General Preferences (2 Columns) -->
+  <div class="settings-grid-2col">
+    <!-- Card 1: Appearance & Display -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h3>Appearance & Display</h3>
+      </div>
+      <div class="settings-card-body">
+        <!-- Colored Card Borders -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Colored Card Borders</div>
+            <div class="setting-item-desc">Category-colored border around article cards</div>
+          </div>
+          <form method="post" action="/settings/update-borders" class="setting-item-controls">
+            <div class="border-controls-wrap">
+              <input type="range" name="border_opacity" min="0.1" max="1.0" step="0.1" value="{{ border_opacity }}" onchange="this.form.submit()" class="compact-range" title="Opacity">
+              <span class="range-val">{{ (border_opacity * 100)|int }}%</span>
+              <input type="number" name="border_size" min="1" max="10" value="{{ border_size }}" onchange="this.form.submit()" class="compact-num" title="Width (px)">
+              <span class="unit-label">px</span>
+            </div>
+            <label class="toggle-switch" title="Toggle colored card borders">
+              <input type="checkbox" name="colored_borders" {% if colored_borders %}checked{% endif %} onchange="this.form.submit()">
+              <span class="toggle-slider"></span>
+            </label>
+          </form>
+        </div>
 
-    {% for custom in custom_favicons %}
-    <div class="favicon-card-wrap">
-      <form method="post" action="/settings/update-favicon" style="margin: 0; height: 100%;">
-        <input type="hidden" name="favicon" value="{{ custom.path }}">
-        <button type="submit" class="favicon-preset-btn {% if active_favicon == custom.path %}active{% endif %}" title="Set as favicon" style="width: 100%; height: 100%;">
-          <img src="{{ custom.path }}" alt="{{ custom.title }}" style="width: 26px; height: 26px; object-fit: contain;">
-          <span class="favicon-preset-title" style="max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ custom.title }}">{{ custom.title }}</span>
-          {% if active_favicon == custom.path %}
-          <span style="font-size: 0.7rem; color: var(--accent); font-weight: 700;">Active</span>
-          {% endif %}
-        </button>
-      </form>
-      <form method="post" action="/settings/delete-favicon/{{ custom.id }}" onsubmit="return confirm('Delete this custom icon?');" style="margin: 0;">
-        <button type="submit" class="favicon-delete-btn" title="Delete custom icon">&times;</button>
-      </form>
+        <!-- 3-Row Step Scrolling -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">3-Row Step Scrolling</div>
+            <div class="setting-item-desc">Advance 3 rows per wheel notch (Row 4 aligns to Row 1)</div>
+          </div>
+          <form method="post" action="/settings/update-scroll" class="setting-item-controls">
+            <label class="toggle-switch" title="Toggle 3-row step scrolling">
+              <input type="checkbox" name="three_row_scroll" {% if three_row_scroll %}checked{% endif %} onchange="this.form.submit()">
+              <span class="toggle-slider"></span>
+            </label>
+          </form>
+        </div>
+
+        <!-- Website Favicon -->
+        <div class="setting-item-row favicon-row">
+          <div class="setting-item-info" style="margin-bottom: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div class="setting-item-title">Website Favicon</div>
+                <div class="setting-item-desc">Select preset icon or upload custom favicon</div>
+              </div>
+              <div class="active-favicon-pill">
+                <span>Active:</span>
+                <img src="{{ active_favicon }}?v={{ favicon_version }}" alt="Favicon" class="active-fav-img">
+              </div>
+            </div>
+          </div>
+
+          <!-- Compact Favicon Strip -->
+          <div class="compact-favicon-strip">
+            {% for icon in preset_favicons %}
+            <form method="post" action="/settings/update-favicon" style="margin: 0;">
+              <input type="hidden" name="favicon" value="{{ icon.path }}">
+              <button type="submit" class="compact-fav-btn {% if active_favicon == icon.path %}active{% endif %}" title="{{ icon.title }}">
+                <img src="{{ icon.path }}" alt="{{ icon.title }}">
+              </button>
+            </form>
+            {% endfor %}
+
+            {% for custom in custom_favicons %}
+            <div class="compact-fav-wrap">
+              <form method="post" action="/settings/update-favicon" style="margin: 0;">
+                <input type="hidden" name="favicon" value="{{ custom.path }}">
+                <button type="submit" class="compact-fav-btn {% if active_favicon == custom.path %}active{% endif %}" title="{{ custom.title }}">
+                  <img src="{{ custom.path }}" alt="{{ custom.title }}">
+                </button>
+              </form>
+              <form method="post" action="/settings/delete-favicon/{{ custom.id }}" onsubmit="return confirm('Delete this custom icon?');" style="margin: 0;">
+                <button type="submit" class="compact-fav-del" title="Delete icon">&times;</button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Compact Upload Form -->
+          <form method="post" action="/settings/upload-favicon" enctype="multipart/form-data" class="compact-fav-upload">
+            <input type="file" name="file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" required class="compact-file-input">
+            <button type="submit" class="btn-sm-accent">Upload</button>
+          </form>
+        </div>
+      </div>
     </div>
-    {% endfor %}
-  </div>
 
-  <!-- Upload Custom Favicon -->
-  <form method="post" action="/settings/upload-favicon" enctype="multipart/form-data" style="margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
-    <span style="font-size: 0.82rem; color: var(--text-dim);">Upload Custom:</span>
-    <input type="file" name="file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" required style="font-size: 0.8rem; color: var(--text-dim); background: #2a2d36; border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; cursor: pointer;">
-    <button type="submit" class="refresh-btn" style="padding: 3px 12px; font-size: 0.8rem;">Upload & Apply</button>
-  </form>
-</div>
+    <!-- Card 2: Sync & Retention -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h3>Sync & Retention</h3>
+      </div>
+      <div class="settings-card-body">
+        <!-- Refresh Interval -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Refresh Interval</div>
+            <div class="setting-item-desc">Background feed polling frequency</div>
+          </div>
+          <form method="post" action="/settings/update-interval" id="interval-form" class="setting-item-controls">
+            <select id="interval_preset" onchange="handleIntervalPreset(this.value)" class="compact-select">
+              <option value="15" {% if refresh_interval == "15" %}selected{% endif %}>15 Minutes</option>
+              <option value="30" {% if refresh_interval == "30" %}selected{% endif %}>30 Minutes (Default)</option>
+              <option value="60" {% if refresh_interval == "60" %}selected{% endif %}>60 Minutes</option>
+              <option value="custom" {% if refresh_interval not in ["15", "30", "60"] %}selected{% endif %}>Custom</option>
+            </select>
+            <div id="custom-interval-wrap" style="display: {% if refresh_interval not in ['15', '30', '60'] %}flex{% else %}none{% endif %}; align-items: center; gap: 4px;">
+              <input type="number" name="refresh_interval" id="custom_interval_input" min="1" max="1440" value="{{ refresh_interval }}" class="compact-num">
+              <span class="unit-label">min</span>
+              <button type="submit" class="btn-sm-accent">Save</button>
+            </div>
+          </form>
+        </div>
 
-<!-- Add Category -->
-<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-  <div>
-    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Add Category</h3>
-    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Create a new category with a custom theme color</p>
-  </div>
-  <form method="post" action="/categories/add" class="add-category-form" style="margin: 0; display: flex; gap: 8px; align-items: center;">
-    <input type="text" name="name" placeholder="New category name" required>
-    <input type="color" name="color" value="#5b8cff" title="Pick color">
-    <button type="submit" class="refresh-btn">+ Add</button>
-  </form>
-</div>
-
-<!-- Add Feed Source -->
-<div class="settings-panel" style="margin-bottom: 16px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-  <div>
-    <h3 style="margin: 0; font-size: 0.95rem; font-weight: 600;">Add Feed Source</h3>
-    <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-dim);">Subscribe to a new RSS feed source under a category</p>
-  </div>
-  <form method="post" action="/feeds/add" class="add-feed-form" style="margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-    <input type="text" name="name" placeholder="Source name" required>
-    <input type="url" name="url" placeholder="RSS feed URL" required style="min-width: 360px;">
-    <select name="category">
-      {% for c in categories %}
-      <option value="{{ c.name }}">{{ c.name|capitalize }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit" class="refresh-btn">+ Add Feed</button>
-  </form>
-</div>
-
-<!-- Categories Manager Chip List -->
-<div class="settings-panel" style="margin-bottom: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: var(--radius);">
-  <h3 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 600;">Categories</h3>
-  <div class="category-list">
-    {% for c in categories %}
-    <form method="post" action="/categories/{{ c.name }}/edit" id="edit-cat-form-{{ c.name }}"></form>
-    <form method="post" action="/categories/{{ c.name }}/delete" id="delete-cat-form-{{ c.name }}"
-          onsubmit="return confirm('Delete {{ c.name }}? Only works if no feeds use it.');"></form>
-          
-    <div class="category-chip">
-      <span class="badge badge-{{ c.name }} view-cat-{{ c.name }}">{{ c.name }}</span>
-      <button type="button" onclick="enableCatEdit('{{ c.name }}')" class="chip-edit view-cat-{{ c.name }}" style="background:none; border:none; color:var(--text-dim); cursor:pointer; padding:0 2px; font-size:0.75rem;">Edit</button>
-      
-      <input type="text" name="name" value="{{ c.name }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.75rem; width: 80px;" required>
-      <input type="color" name="color" value="{{ c.color }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); padding: 0; cursor: pointer; background: none;">
-      
-      <button type="submit" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--accent-2); cursor: pointer; padding: 0 2px; font-weight: bold; font-size: 0.85rem;" title="Save">✓</button>
-      <button type="submit" form="delete-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--danger); cursor: pointer; padding: 0 2px;" title="Delete">✕</button>
-      <button type="button" onclick="disableCatEdit('{{ c.name }}')" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 0.85rem;" title="Cancel">Cancel</button>
+        <!-- Article Retention -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Article Retention</div>
+            <div class="setting-item-desc">Automatically purge older articles</div>
+          </div>
+          <form method="post" action="/settings/update-retention" class="setting-item-controls">
+            <select name="retention_days" onchange="this.form.submit()" class="compact-select">
+              <option value="7" {% if retention_days == "7" %}selected{% endif %}>7 Days</option>
+              <option value="14" {% if retention_days == "14" %}selected{% endif %}>14 Days (Default)</option>
+              <option value="30" {% if retention_days == "30" %}selected{% endif %}>30 Days</option>
+            </select>
+          </form>
+        </div>
+      </div>
     </div>
-    {% endfor %}
   </div>
-</div>
 
-<!-- Feeds Table -->
-<table class="feeds-table">
-  <thead>
-    <tr><th>Name</th><th>Category</th><th>URL</th><th>Articles</th><th>Enabled</th><th></th></tr>
-  </thead>
-  <tbody>
-  {% for f in feeds %}
-    <tr class="{% if not f.enabled %}feed-disabled{% endif %}">
-      <td>
-        <span class="view-mode-{{ f.id }}">{{ f.name }}</span>
-        <input type="text" name="name" value="{{ f.name }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
-      </td>
-      <td>
-        <span class="badge badge-{{ f.category }} view-mode-{{ f.id }}">{{ f.category }}</span>
-        <select name="category" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;">
+  <!-- Row 2: Categories & Add Feed (2 Columns) -->
+  <div class="settings-grid-2col" style="margin-top: 14px;">
+    <!-- Card 3: Categories Manager (Unified: Add + Chips) -->
+    <div class="settings-card">
+      <div class="settings-card-header flex-between">
+        <h3>Categories</h3>
+        <!-- Inline Add Category Form -->
+        <form method="post" action="/categories/add" class="inline-add-cat-form">
+          <input type="text" name="name" placeholder="New category" required class="compact-input" style="width: 110px;">
+          <input type="color" name="color" value="#5b8cff" title="Pick color" class="compact-color-picker">
+          <button type="submit" class="btn-sm-accent">+ Add</button>
+        </form>
+      </div>
+      <div class="settings-card-body">
+        <div class="category-list">
           {% for c in categories %}
-          <option value="{{ c.name }}" {% if c.name == f.category %}selected{% endif %}>{{ c.name|capitalize }}</option>
+          <form method="post" action="/categories/{{ c.name }}/edit" id="edit-cat-form-{{ c.name }}"></form>
+          <form method="post" action="/categories/{{ c.name }}/delete" id="delete-cat-form-{{ c.name }}"
+                onsubmit="return confirm('Delete {{ c.name }}? Only works if no feeds use it.');"></form>
+                
+          <div class="category-chip">
+            <span class="badge badge-{{ c.name }} view-cat-{{ c.name }}">{{ c.name }}</span>
+            <button type="button" onclick="enableCatEdit('{{ c.name }}')" class="chip-edit view-cat-{{ c.name }}" style="background:none; border:none; color:var(--text-dim); cursor:pointer; padding:0 2px; font-size:0.75rem;">Edit</button>
+            
+            <input type="text" name="name" value="{{ c.name }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.75rem; width: 80px;" required>
+            <input type="color" name="color" value="{{ c.color }}" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); padding: 0; cursor: pointer; background: none;">
+            
+            <button type="submit" form="edit-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--accent-2); cursor: pointer; padding: 0 2px; font-weight: bold; font-size: 0.85rem;" title="Save">✓</button>
+            <button type="submit" form="delete-cat-form-{{ c.name }}" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--danger); cursor: pointer; padding: 0 2px;" title="Delete">✕</button>
+            <button type="button" onclick="disableCatEdit('{{ c.name }}')" class="edit-cat-{{ c.name }}" style="display: none; background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; font-size: 0.85rem;" title="Cancel">Cancel</button>
+          </div>
           {% endfor %}
-        </select>
-      </td>
-      <td class="feed-url">
-        <span class="view-mode-{{ f.id }}">{{ f.url }}</span>
-        <input type="url" name="url" value="{{ f.url }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
-      </td>
-      <td class="article-count {% if f.article_count == 0 %}zero{% endif %}">
-        {{ f.article_count }}
-        <span style="font-size: 0.8rem; color: {% if f.last_fetched|is_older_than_day %}var(--danger){% else %}var(--text-dim){% endif %}; margin-left: 6px; font-weight: normal; font-style: italic;">({{ f.last_fetched|format_time_ago }})</span>
-      </td>
-      <td>
-        <div class="view-mode-{{ f.id }}">
-          <form method="post" action="/feeds/{{ f.id }}/toggle">
-            <button type="submit">{{ "Disable" if f.enabled else "Enable" }}</button>
-          </form>
         </div>
-        <div class="edit-mode-{{ f.id }}" style="display: none;">
-          <form method="post" action="/feeds/{{ f.id }}/edit" id="edit-form-{{ f.id }}">
-            <button type="submit" class="refresh-btn">Save</button>
-          </form>
-        </div>
-      </td>
-      <td>
-        <div class="view-mode-{{ f.id }}" style="display: flex; gap: 4px; align-items: center;">
-          <button type="button" onclick="enableEdit({{ f.id }})">Edit</button>
-          <form method="post" action="/feeds/{{ f.id }}/delete"
-                onsubmit="return confirm('Delete this feed and its articles?');">
-            <button type="submit" class="danger">Delete</button>
-          </form>
-        </div>
-        <div class="edit-mode-{{ f.id }}" style="display: none;">
-          <button type="button" onclick="disableEdit({{ f.id }})">Cancel</button>
-        </div>
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+      </div>
+    </div>
+
+    <!-- Card 4: Add Feed Source -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <h3>Add Feed Source</h3>
+      </div>
+      <div class="settings-card-body">
+        <form method="post" action="/feeds/add" class="compact-add-feed-form">
+          <div class="add-feed-row">
+            <input type="text" name="name" placeholder="Source name (e.g. Ars Technica)" required class="compact-input flex-1">
+            <select name="category" class="compact-select">
+              {% for c in categories %}
+              <option value="{{ c.name }}">{{ c.name|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="add-feed-row">
+            <input type="url" name="url" placeholder="RSS feed URL (https://...)" required class="compact-input flex-1">
+            <button type="submit" class="btn-sm-accent" style="white-space: nowrap;">+ Add Feed</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Feeds Table -->
+  <div class="settings-card" style="margin-top: 14px; margin-bottom: 24px;">
+    <div class="settings-card-header flex-between">
+      <h3>Active Feeds ({{ feeds|length }})</h3>
+    </div>
+    <div class="settings-card-body" style="padding: 0; overflow-x: auto;">
+      <table class="feeds-table">
+        <thead>
+          <tr><th>Name</th><th>Category</th><th>URL</th><th>Articles</th><th>Enabled</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for f in feeds %}
+          <tr class="{% if not f.enabled %}feed-disabled{% endif %}">
+            <td>
+              <span class="view-mode-{{ f.id }}">{{ f.name }}</span>
+              <input type="text" name="name" value="{{ f.name }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
+            </td>
+            <td>
+              <span class="badge badge-{{ f.category }} view-mode-{{ f.id }}">{{ f.category }}</span>
+              <select name="category" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;">
+                {% for c in categories %}
+                <option value="{{ c.name }}" {% if c.name == f.category %}selected{% endif %}>{{ c.name|capitalize }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="feed-url">
+              <span class="view-mode-{{ f.id }}">{{ f.url }}</span>
+              <input type="url" name="url" value="{{ f.url }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
+            </td>
+            <td class="article-count {% if f.article_count == 0 %}zero{% endif %}">
+              {{ f.article_count }}
+              <span style="font-size: 0.8rem; color: {% if f.last_fetched|is_older_than_day %}var(--danger){% else %}var(--text-dim){% endif %}; margin-left: 6px; font-weight: normal; font-style: italic;">({{ f.last_fetched|format_time_ago }})</span>
+            </td>
+            <td>
+              <div class="view-mode-{{ f.id }}">
+                <form method="post" action="/feeds/{{ f.id }}/toggle">
+                  <button type="submit">{{ "Disable" if f.enabled else "Enable" }}</button>
+                </form>
+              </div>
+              <div class="edit-mode-{{ f.id }}" style="display: none;">
+                <form method="post" action="/feeds/{{ f.id }}/edit" id="edit-form-{{ f.id }}">
+                  <button type="submit" class="refresh-btn">Save</button>
+                </form>
+              </div>
+            </td>
+            <td>
+              <div class="view-mode-{{ f.id }}" style="display: flex; gap: 4px; align-items: center;">
+                <button type="button" onclick="enableEdit({{ f.id }})">Edit</button>
+                <form method="post" action="/feeds/{{ f.id }}/delete"
+                      onsubmit="return confirm('Delete this feed and its articles?');">
+                  <button type="submit" class="danger">Delete</button>
+                </form>
+              </div>
+              <div class="edit-mode-{{ f.id }}" style="display: none;">
+                <button type="button" onclick="disableEdit({{ f.id }})">Cancel</button>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 <script>
 function enableEdit(id) {

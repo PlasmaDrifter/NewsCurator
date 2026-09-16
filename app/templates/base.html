@@ -5,13 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}News Curator{% endblock %}</title>
 <link rel="icon" href="{{ get_active_favicon() }}?v={{ get_favicon_version() }}">
-<link rel="stylesheet" href="/static/style.css?v=35">
+<link rel="stylesheet" href="/static/style.css?v=36">
 <link rel="stylesheet" href="/dynamic.css">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-left">
-    <a href="/" class="brand">📰 News Curator</a>
+    <a href="/" class="brand">
+      <img src="{{ get_active_favicon() }}?v={{ get_favicon_version() }}" alt="Logo" class="brand-icon">
+      <span>News Curator</span>
+    </a>
   </div>
   <div class="topbar-center">
     <form method="get" action="/" class="search-form" id="search-form">
