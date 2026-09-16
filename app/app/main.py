@@ -234,8 +234,8 @@ def init_db():
             )
         """)
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('colored_borders', '0')")
-        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_opacity', '1.0')")
-        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_size', '2')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_opacity', '0.5')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('border_size', '3')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('retention_days', '14')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('refresh_interval', '30')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon', '/static/favicons/newspaper.svg')")
@@ -523,8 +523,8 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         feeds = conn.execute("SELECT * FROM feeds ORDER BY category, name").fetchall()
         categories = get_categories(conn)
         colored_borders = get_setting(conn, "colored_borders") == "1"
-        border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
-        border_size = int(get_setting(conn, "border_size", "2"))
+        border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
+        border_size = int(get_setting(conn, "border_size", "3"))
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = int(get_setting(conn, "step_scroll_rows", "3"))
@@ -552,7 +552,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
 @app.get("/api/articles")
 def api_articles(category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, offset: int = 0, limit: int = 60):
     with closing(get_db()) as conn:
-        border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
+        border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
         rows, has_more = query_articles(conn, category=category, source=source, q=q, bookmarked=bool(bookmarked), offset=offset, limit=limit)
         items = []
         for r in rows:
@@ -665,8 +665,8 @@ def feeds_page(request: Request):
         """).fetchall()
         categories = get_categories(conn)
         colored_borders = get_setting(conn, "colored_borders") == "1"
-        border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
-        border_size = int(get_setting(conn, "border_size", "2"))
+        border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
+        border_size = int(get_setting(conn, "border_size", "3"))
         retention_days = get_setting(conn, "retention_days", "14")
         refresh_interval = get_setting(conn, "refresh_interval", "30")
         active_favicon = get_setting(conn, "favicon", "/static/favicons/newspaper.svg")
@@ -772,8 +772,8 @@ def delete_favicon(favicon_id: int):
 async def update_borders(request: Request):
     form = await request.form()
     colored_borders = "1" if "colored_borders" in form else "0"
-    border_opacity = form.get("border_opacity", "1.0")
-    border_size = form.get("border_size", "2")
+    border_opacity = form.get("border_opacity", "0.5")
+    border_size = form.get("border_size", "3")
     with closing(get_db()) as conn, conn:
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('colored_borders', ?)", (colored_borders,))
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('border_opacity', ?)", (border_opacity,))
