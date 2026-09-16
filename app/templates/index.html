@@ -53,7 +53,7 @@
     </div>
     <div class="card-body">
       <h2 class="card-title">
-        <a href="{{ a.link }}" target="_blank" rel="noopener" onclick="markAsRead({{ a.id }})" onauxclick="markAsRead({{ a.id }})">{{ a.title }}</a>
+        <a href="{{ a.link }}" {% if open_in_new_tab %}target="_blank"{% else %}target="_self"{% endif %} rel="noopener" onclick="markAsRead({{ a.id }})" onauxclick="markAsRead({{ a.id }})">{{ a.title }}</a>
       </h2>
       {% if a.summary %}<p class="card-summary">{{ a.summary }}</p>{% endif %}
       <div class="card-footer">
@@ -85,6 +85,7 @@ const coloredBorders = {{ colored_borders | tojson }};
 const borderOpacity = {{ border_opacity | tojson }};
 const borderSize = {{ border_size | tojson }};
 const threeRowScroll = {{ three_row_scroll | tojson }};
+const openInNewTab = {{ open_in_new_tab | tojson }};
 
 function handleCardClick(event, card) {
   // If clicked on bookmark button, do not navigate
@@ -109,7 +110,11 @@ function handleCardClick(event, card) {
 
   // Handle left click (0) and middle click (1)
   if (link && (event.button === 0 || event.button === 1)) {
-    window.open(link, '_blank', 'noopener,noreferrer');
+    if (event.button === 1 || openInNewTab) {
+      window.open(link, '_blank', 'noopener,noreferrer');
+    } else {
+      window.location.href = link;
+    }
   }
 }
 
@@ -241,7 +246,7 @@ async function loadMoreArticles() {
           </div>
           <div class="card-body">
             <h2 class="card-title">
-              <a href="${escapeHtml(a.link)}" target="_blank" rel="noopener" onclick="markAsRead(${a.id})" onauxclick="markAsRead(${a.id})">${escapeHtml(a.title)}</a>
+              <a href="${escapeHtml(a.link)}" target="${openInNewTab ? '_blank' : '_self'}" rel="noopener" onclick="markAsRead(${a.id})" onauxclick="markAsRead(${a.id})">${escapeHtml(a.title)}</a>
             </h2>
             ${a.summary ? `<p class="card-summary">${escapeHtml(a.summary)}</p>` : ''}
             <div class="card-footer">

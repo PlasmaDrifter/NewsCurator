@@ -240,6 +240,7 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('refresh_interval', '30')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon', '/static/favicons/newspaper.svg')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon_version', '1')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('open_in_new_tab', '1')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -524,6 +525,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         border_opacity = float(get_setting(conn, "border_opacity", "1.0"))
         border_size = int(get_setting(conn, "border_size", "2"))
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
+        open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -540,6 +542,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "border_opacity": border_opacity,
         "border_size": border_size,
         "three_row_scroll": three_row_scroll,
+        "open_in_new_tab": open_in_new_tab,
     })
 
 
@@ -668,6 +671,7 @@ def feeds_page(request: Request):
         custom_favicons = get_custom_favicons(conn)
         total_articles = conn.execute("SELECT COUNT(*) AS c FROM articles").fetchone()["c"]
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
+        open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
     return templates.TemplateResponse("feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -683,6 +687,7 @@ def feeds_page(request: Request):
         "custom_favicons": custom_favicons,
         "total_articles": f"{total_articles:,}",
         "three_row_scroll": three_row_scroll,
+        "open_in_new_tab": open_in_new_tab,
     })
 
 
@@ -795,6 +800,15 @@ async def update_scroll(request: Request):
     three_row_scroll = "1" if "three_row_scroll" in form else "0"
     with closing(get_db()) as conn, conn:
         set_setting(conn, "three_row_scroll", three_row_scroll)
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-open-tab")
+async def update_open_tab(request: Request):
+    form = await request.form()
+    open_in_new_tab = "1" if "open_in_new_tab" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "open_in_new_tab", open_in_new_tab)
     return RedirectResponse("/feeds", status_code=303)
 
 

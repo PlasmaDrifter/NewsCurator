@@ -49,6 +49,20 @@
           </form>
         </div>
 
+        <!-- Open Articles in New Tab -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Open Articles in New Tab</div>
+            <div class="setting-item-desc">Open article links in a new browser tab (unchecked opens in same tab)</div>
+          </div>
+          <form method="post" action="/settings/update-open-tab" class="setting-item-controls">
+            <label class="toggle-switch" title="Toggle open articles in new tab">
+              <input type="checkbox" name="open_in_new_tab" {% if open_in_new_tab %}checked{% endif %} onchange="this.form.submit()">
+              <span class="toggle-slider"></span>
+            </label>
+          </form>
+        </div>
+
         <!-- Website Favicon -->
         <div class="setting-item-row favicon-row">
           <div class="setting-item-info" style="margin-bottom: 6px;">
