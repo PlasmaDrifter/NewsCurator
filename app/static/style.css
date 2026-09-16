@@ -1357,31 +1357,40 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   object-fit: contain;
 }
 
-.compact-favicon-strip {
+.favicon-layout-wrap {
   display: flex;
-  gap: 6px;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
-  margin: 6px 0;
+  margin-top: 8px;
+}
+
+.compact-favicon-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 42px);
+  gap: 8px;
+  align-items: center;
 }
 
 .compact-fav-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   background: #2a2d36;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 3px;
+  border-radius: 7px;
+  padding: 4px;
   cursor: pointer;
+  box-sizing: border-box;
   transition: all 0.15s ease;
 }
 
 .compact-fav-btn img {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
@@ -1392,8 +1401,8 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .compact-fav-btn.active {
   border-color: var(--accent);
-  background: rgba(249, 115, 22, 0.15);
-  box-shadow: 0 0 6px rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.18);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.35);
 }
 
 .compact-fav-wrap {
@@ -1403,15 +1412,15 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .compact-fav-del {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -5px;
+  right: -5px;
   background: #e11d48;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  width: 15px;
-  height: 15px;
-  font-size: 11px;
+  width: 17px;
+  height: 17px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   display: flex;
@@ -1420,25 +1429,35 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   cursor: pointer;
   padding: 0;
   z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.favicon-upload-box {
+  display: flex;
+  align-items: flex-start;
 }
 
 .compact-fav-upload {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .compact-file-input {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--text-dim);
-  background: #2a2d36;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 6px;
+  background: #151820;
+  border: 1px solid rgba(91, 140, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.12), inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 4px 6px;
   cursor: pointer;
-  max-width: 200px;
+  max-width: 215px;
+  box-sizing: border-box;
+}
+.compact-file-input:hover {
+  border-color: rgba(91, 140, 255, 0.55);
 }
 
 /* Category & Feed Forms */

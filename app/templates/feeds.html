@@ -78,37 +78,42 @@
             </div>
           </div>
 
-          <!-- Compact Favicon Strip -->
-          <div class="compact-favicon-strip">
-            {% for icon in preset_favicons %}
-            <form method="post" action="/settings/update-favicon" style="margin: 0;">
-              <input type="hidden" name="favicon" value="{{ icon.path }}">
-              <button type="submit" class="compact-fav-btn {% if active_favicon == icon.path %}active{% endif %}" title="{{ icon.title }}">
-                <img src="{{ icon.path }}" alt="{{ icon.title }}">
-              </button>
-            </form>
-            {% endfor %}
-
-            {% for custom in custom_favicons %}
-            <div class="compact-fav-wrap">
+          <!-- Favicons Layout: Left (Icons 5 per row) & Right (Browse & Upload) -->
+          <div class="favicon-layout-wrap">
+            <!-- Left Side: 5-Per-Row Grid of Favicons -->
+            <div class="compact-favicon-grid">
+              {% for icon in preset_favicons %}
               <form method="post" action="/settings/update-favicon" style="margin: 0;">
-                <input type="hidden" name="favicon" value="{{ custom.path }}">
-                <button type="submit" class="compact-fav-btn {% if active_favicon == custom.path %}active{% endif %}" title="{{ custom.title }}">
-                  <img src="{{ custom.path }}" alt="{{ custom.title }}">
+                <input type="hidden" name="favicon" value="{{ icon.path }}">
+                <button type="submit" class="compact-fav-btn {% if active_favicon == icon.path %}active{% endif %}" title="{{ icon.title }}">
+                  <img src="{{ icon.path }}" alt="{{ icon.title }}">
                 </button>
               </form>
-              <form method="post" action="/settings/delete-favicon/{{ custom.id }}" onsubmit="return confirm('Delete this custom icon?');" style="margin: 0;">
-                <button type="submit" class="compact-fav-del" title="Delete icon">&times;</button>
+              {% endfor %}
+
+              {% for custom in custom_favicons %}
+              <div class="compact-fav-wrap">
+                <form method="post" action="/settings/update-favicon" style="margin: 0;">
+                  <input type="hidden" name="favicon" value="{{ custom.path }}">
+                  <button type="submit" class="compact-fav-btn {% if active_favicon == custom.path %}active{% endif %}" title="{{ custom.title }}">
+                    <img src="{{ custom.path }}" alt="{{ custom.title }}">
+                  </button>
+                </form>
+                <form method="post" action="/settings/delete-favicon/{{ custom.id }}" onsubmit="return confirm('Delete this custom icon?');" style="margin: 0;">
+                  <button type="submit" class="compact-fav-del" title="Delete icon">&times;</button>
+                </form>
+              </div>
+              {% endfor %}
+            </div>
+
+            <!-- Right Side: Browse and Upload -->
+            <div class="favicon-upload-box">
+              <form method="post" action="/settings/upload-favicon" enctype="multipart/form-data" class="compact-fav-upload">
+                <input type="file" name="file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" required class="compact-file-input">
+                <button type="submit" class="btn-sm-accent">Upload</button>
               </form>
             </div>
-            {% endfor %}
           </div>
-
-          <!-- Compact Upload Form -->
-          <form method="post" action="/settings/upload-favicon" enctype="multipart/form-data" class="compact-fav-upload">
-            <input type="file" name="file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" required class="compact-file-input">
-            <button type="submit" class="btn-sm-accent">Upload</button>
-          </form>
         </div>
       </div>
     </div>
