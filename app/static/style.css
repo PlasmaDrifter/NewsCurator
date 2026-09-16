@@ -456,7 +456,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 
 .category-list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 0;
 }
@@ -469,42 +469,52 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  padding: 4px 8px;
+  padding: 0 8px;
+  height: 28px;
   border-radius: 6px;
-  gap: 4px;
+  border: 2px solid;
+  gap: 6px;
   min-width: 0;
   box-sizing: border-box;
   transition: opacity 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
+  cursor: grab;
+}
+
+.category-chip:active {
+  cursor: grabbing;
 }
 
 .category-chip.dragging {
   opacity: 0.35;
-  border: 1px dashed var(--accent-1);
-  transform: scale(0.97);
+  border-style: dashed !important;
+  transform: scale(0.97) !important;
 }
 
 .category-chip.drag-over {
-  border-color: var(--accent-1);
-  box-shadow: 0 0 0 2px rgba(91, 140, 255, 0.25);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px) !important;
 }
 
 .chip-drag-handle {
   cursor: grab;
-  color: var(--text-dim);
+  color: inherit;
   font-size: 0.85rem;
   letter-spacing: -2px;
-  padding: 0 4px 0 1px;
+  padding: 0 2px 0 0;
   line-height: 1;
-  opacity: 0.6;
-  transition: opacity 0.15s ease;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.category-chip:hover .chip-drag-handle {
+  opacity: 0.85;
 }
 
 .chip-drag-handle:hover {
   opacity: 1;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .reorder-status-badge {
@@ -518,6 +528,20 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   animation: fadeIn 0.2s ease;
 }
 
+.category-chip .chip-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+  line-height: 1;
+  color: inherit;
+}
+
 .category-chip .badge {
   font-size: 0.75rem;
   padding: 2px 6px;
@@ -526,24 +550,41 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   white-space: nowrap;
   min-width: 0;
   flex: 1;
+  text-align: left;
 }
 
 .chip-edit-btn {
   background: none;
   border: 1px solid transparent;
-  color: var(--text-dim);
-  font-size: 0.72rem;
-  padding: 1px 5px;
+  color: #ffffff;
+  opacity: 0.9;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px 5px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
-  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-chip:hover .chip-edit-btn {
+  opacity: 1;
 }
 
 .chip-edit-btn:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--border);
+  opacity: 1;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}
+
+#modal-cat-preview {
+  pointer-events: none;
+  user-select: none;
 }
 
 /* Category Edit Modal */

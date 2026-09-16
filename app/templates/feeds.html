@@ -227,13 +227,13 @@
       <div class="settings-card-body">
         <div class="category-list" id="category-list">
           {% for c in categories %}
-          <div class="category-chip" draggable="true" data-name="{{ c.name }}" data-color="{{ c.color }}" data-feeds="{{ c.feed_count }}">
+          <div class="category-chip cat-btn cat-btn-{{ c.name|css_class }}" draggable="true" data-name="{{ c.name }}" data-color="{{ c.color }}" data-feeds="{{ c.feed_count }}">
             <span class="chip-drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
-            <span class="badge badge-{{ c.name|css_class }}">{{ c.name }}</span>
+            <span class="chip-label">{{ c.name }}</span>
             <button type="button" 
                     onclick="openCategoryModal('{{ c.name|escape }}', '{{ c.color }}', {{ c.feed_count }})" 
                     class="chip-edit-btn" 
-                    title="Edit category">Edit</button>
+                    title="Edit {{ c.name }}">&#9998;</button>
           </div>
           {% endfor %}
         </div>
@@ -335,7 +335,7 @@
     <div class="modal-header">
       <div class="modal-title-wrap">
         <h3 class="modal-title">Edit Category</h3>
-        <span id="modal-cat-preview" class="badge">Category</span>
+        <span id="modal-cat-preview" class="cat-btn">Category</span>
       </div>
       <button type="button" class="modal-close-btn" onclick="closeCategoryModal()" title="Close">&times;</button>
     </div>
@@ -390,6 +390,35 @@ function disableEdit(id) {
 
 let activeEditCategory = null;
 
+function hexToRgba(hex, alpha) {
+  let r = 91, g = 140, b = 255;
+  if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function updateModalPreviewColor(color) {
+  const preview = document.getElementById('modal-cat-preview');
+  const hexInput = document.getElementById('modal-cat-color-hex');
+  const colorInput = document.getElementById('modal-cat-color');
+  if (hexInput && hexInput !== document.activeElement) hexInput.value = color;
+  if (colorInput && colorInput !== document.activeElement) colorInput.value = color;
+  if (preview) {
+    preview.style.backgroundColor = hexToRgba(color, 0.15);
+    preview.style.borderColor = hexToRgba(color, 0.5);
+    preview.style.color = '#c7cbd3';
+  }
+}
+
+function handleHexInput(val) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    updateModalPreviewColor(val);
+  }
+}
+
 function openCategoryModal(name, color, feedCount) {
   activeEditCategory = name;
   const modal = document.getElementById('category-edit-modal');
@@ -410,8 +439,7 @@ function openCategoryModal(name, color, feedCount) {
   hexInput.value = color || '#5b8cff';
 
   preview.textContent = name;
-  preview.style.backgroundColor = color || '#5b8cff';
-  preview.style.color = '#ffffff';
+  updateModalPreviewColor(color || '#5b8cff');
 
   nameInput.oninput = function() {
     preview.textContent = this.value || 'Category';
@@ -452,22 +480,6 @@ document.addEventListener('keydown', (e) => {
     closeCategoryModal();
   }
 });
-
-function updateModalPreviewColor(color) {
-  const preview = document.getElementById('modal-cat-preview');
-  const hexInput = document.getElementById('modal-cat-color-hex');
-  if (preview) preview.style.backgroundColor = color;
-  if (hexInput) hexInput.value = color;
-}
-
-function handleHexInput(val) {
-  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-    const colorInput = document.getElementById('modal-cat-color');
-    const preview = document.getElementById('modal-cat-preview');
-    if (colorInput) colorInput.value = val;
-    if (preview) preview.style.backgroundColor = val;
-  }
-}
 
 function submitCategoryDelete() {
   if (!activeEditCategory) return;
