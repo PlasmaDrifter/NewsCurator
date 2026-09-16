@@ -78,9 +78,9 @@
             </div>
           </div>
 
-          <!-- Favicons Layout: Left (Icons 5 per row) & Right (Browse & Upload) -->
+          <!-- Favicons Layout: Left (Icons 7 per row) & Right (Browse & Upload) -->
           <div class="favicon-layout-wrap">
-            <!-- Left Side: 5-Per-Row Grid of Favicons -->
+            <!-- Left Side: 7-Per-Row Grid of Favicons -->
             <div class="compact-favicon-grid">
               {% for icon in preset_favicons %}
               <form method="post" action="/settings/update-favicon" style="margin: 0;">
@@ -106,11 +106,17 @@
               {% endfor %}
             </div>
 
-            <!-- Right Side: Browse and Upload -->
+            <!-- Right Side: Browse and Upload (Matched Size & Perfectly Aligned) -->
             <div class="favicon-upload-box">
               <form method="post" action="/settings/upload-favicon" enctype="multipart/form-data" class="compact-fav-upload">
-                <input type="file" name="file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" required class="compact-file-input">
-                <button type="submit" class="btn-sm-accent">Upload</button>
+                <div class="favicon-upload-btn-row">
+                  <label class="btn-fav-browse" for="favicon-file-input">
+                    Browse
+                    <input type="file" id="favicon-file-input" name="file" accept=".png,.svg,.ico,.jpg,.jpeg,.webp" required onchange="updateFaviconFileName(this)" class="sr-only-file">
+                  </label>
+                  <button type="submit" class="btn-fav-upload">Upload</button>
+                </div>
+                <div id="fav-file-name" class="fav-file-name">No file selected</div>
               </form>
             </div>
           </div>
@@ -329,6 +335,18 @@ function handleIntervalPreset(val) {
     customWrap.style.display = 'none';
     input.value = val;
     form.submit();
+  }
+}
+function updateFaviconFileName(input) {
+  const label = document.getElementById('fav-file-name');
+  if (label) {
+    if (input.files && input.files.length > 0) {
+      label.textContent = input.files[0].name;
+      label.classList.add('has-file');
+    } else {
+      label.textContent = 'No file selected';
+      label.classList.remove('has-file');
+    }
   }
 }
 </script>
