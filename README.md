@@ -1,5 +1,6 @@
 # News Curator
 
+[![Reddit](https://img.shields.io/badge/Reddit-r%2FPlasmaDrifterProjects-FF4500?style=flat-square&logo=reddit&logoColor=white)](https://reddit.com/r/PlasmaDrifterProjects)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Podman](https://img.shields.io/badge/Podman-Quadlet-892CA0?logo=podman&logoColor=white)](https://podman.io)
@@ -198,3 +199,11 @@ The application uses SQLite with four core tables:
 ## License
 
 Created and maintained by [PlasmaDrifter](https://github.com/PlasmaDrifter). Distributed for personal and self-hosted use.
+
+---
+
+## 💬 Community & Discussions
+
+Got questions, setup ideas, or feedback?
+
+* 🌐 Join our subreddit at [**r/PlasmaDrifterProjects**](https://reddit.com/r/PlasmaDrifterProjects) to discuss updates, get support, and share configurations.
