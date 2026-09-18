@@ -34,6 +34,9 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 ## Features
 
 - **Dual Viewing Modes (Grid & Table)**
+- **Unread Articles Filter & One-Click Mark All Read**
+- **Feed Health & Sync Monitoring (Healthy, Idle, Error, Disabled)**
+- **Balanced 3-Column Settings Dashboard with Pinwheel Color Picker**
 - **Dynamic Category Styling & Custom Borders**
 - **Feed Aggregation & Background Polling**
 - **Comprehensive Feed & Category Management**

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}News Curator{% endblock %}</title>
 <link rel="icon" href="{{ get_active_favicon() }}?v={{ get_favicon_version() }}">
-<link rel="stylesheet" href="/static/style.css?v=58">
+<link rel="stylesheet" href="/static/style.css?v=73">
 <link rel="stylesheet" href="/dynamic.css?v={{ border_opacity|default('0.5') }}">
 </head>
 <body class="{% if anim_cascade %}anim-cascade-enabled{% endif %}">
@@ -21,6 +21,7 @@
       {% if current_category and current_category != "all" %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
       {% if current_source and current_source != "all" %}<input type="hidden" name="source" value="{{ current_source }}">{% endif %}
       {% if is_bookmarked_view %}<input type="hidden" name="bookmarked" value="1">{% endif %}
+      {% if is_unread_view %}<input type="hidden" name="unread" value="1">{% endif %}
       <div class="search-wrapper">
         <input type="search" name="q" id="search-input" value="{{ search_query|default('') }}" placeholder="Search articles..." class="search-input" autocomplete="off">
         <button type="button" id="search-clear-btn" class="search-clear-btn" title="Clear search" style="display: {% if search_query %}flex{% else %}none{% endif %};" onclick="clearSearch()">&times;</button>
@@ -38,6 +39,18 @@
       <span class="nav-back-arrow">←</span> <span>Back to Feed</span>
     </a>
     {% else %}
+    <form method="post" action="/refresh" id="refresh-form" onsubmit="handleRefreshSubmit(this)">
+      <input type="hidden" name="redirect_to" value="/?category={{ current_category|default('all') }}&source={{ current_source|default('all') }}&q={{ search_query|default('') }}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}">
+      <button type="submit" class="refresh-btn" id="refresh-btn" title="Refresh all RSS feeds">
+        <span class="refresh-icon" id="refresh-icon">⟳</span>
+        <span class="refresh-text" id="refresh-text">Refresh</span>
+      </button>
+    </form>
+
+    <button type="button" id="view-toggle-btn" class="view-toggle-btn" onclick="toggleViewMode()" title="Toggle Grid / Table View">
+      <span id="view-toggle-icon">☰</span> <span id="view-toggle-text">Table</span>
+    </button>
+
     <a href="/feeds" class="nav-btn nav-settings-btn" title="Manage Sources & Settings">
       <span class="settings-gear">⚙</span> <span>Settings</span>
     </a>
@@ -97,6 +110,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+function handleRefreshSubmit(form) {
+  const btn = form.querySelector('.refresh-btn');
+  if (btn) {
+    btn.classList.add('refreshing');
+  }
+}
 </script>
 </body>
 </html>
