@@ -15,6 +15,20 @@
         <h3>Appearance &amp; Display</h3>
       </div>
       <div class="settings-card-body">
+        <!-- Theme & Color Palette -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Theme &amp; Color Palette</div>
+            <div class="setting-item-desc">Curated presets or custom color tuning</div>
+          </div>
+          <div class="setting-item-controls theme-setting-controls">
+            <span class="active-theme-badge" id="active-theme-badge-display">{{ active_theme_name }}</span>
+            <button type="button" class="btn btn-secondary btn-sm configure-theme-btn" onclick="openThemeModal()" title="Configure theme colors and presets">
+              <span>🎨 Configure</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Colored Card Borders -->
         <div class="setting-item-row">
           <div class="setting-item-info">
@@ -249,43 +263,7 @@
 
     <!-- Column 3: Feed & Category Management -->
     <div class="settings-col-stacked">
-      <!-- Card 3A: Categories Manager -->
-      <div class="settings-card">
-        <div class="settings-card-header flex-between">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <h3>Categories</h3>
-            <span id="cat-reorder-status" class="reorder-status-badge" style="display: none;">Saved</span>
-          </div>
-          <!-- Inline Add Category Form -->
-          <form method="post" action="/categories/add" class="inline-add-cat-form">
-            <input type="text" name="name" placeholder="New category" required class="compact-input" style="width: 110px;">
-            <label class="pinwheel-color-wrap" title="Pick category color">
-              <span class="pinwheel-disc">
-                <span class="pinwheel-center" id="add-cat-color-preview" style="background-color: #5b8cff;"></span>
-              </span>
-              <input type="color" name="color" id="add-cat-color-input" value="#5b8cff" oninput="document.getElementById('add-cat-color-preview').style.backgroundColor = this.value" class="pinwheel-color-input">
-            </label>
-            <button type="submit" class="btn-sm-accent">+ Add</button>
-          </form>
-        </div>
-        <div class="settings-card-body">
-          <div class="category-hint-text">Drag to rearrange</div>
-          <div class="category-list" id="category-list">
-            {% for c in categories %}
-            <div class="category-chip cat-btn cat-btn-{{ c.name|css_class }}" draggable="true" data-name="{{ c.name }}" data-color="{{ c.color }}" data-feeds="{{ c.feed_count }}">
-              <span class="chip-drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
-              <span class="chip-label">{{ c.name }}</span>
-              <button type="button" 
-                      onclick="openCategoryModal('{{ c.name|escape }}', '{{ c.color }}', {{ c.feed_count }})" 
-                      class="chip-edit-btn" 
-                      title="Edit {{ c.name }}">&#9998;</button>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 3B: Add Feed Source -->
+      <!-- Card 3A: Add Feed Source (Top) -->
       <div class="settings-card">
         <div class="settings-card-header">
           <h3>Add Feed Source</h3>
@@ -305,6 +283,43 @@
               <button type="submit" class="btn-sm-accent" style="white-space: nowrap;">+ Add Feed</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Card 3B: Categories Manager (Below) -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h3>Categories</h3>
+            <span id="cat-reorder-status" class="reorder-status-badge" style="display: none;">Saved</span>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <!-- Add Category Form Row -->
+          <form method="post" action="/categories/add" class="add-category-row">
+            <input type="text" name="name" placeholder="New category name..." required class="compact-input flex-1">
+            <label class="pinwheel-color-wrap" title="Pick category color">
+              <span class="pinwheel-disc">
+                <span class="pinwheel-center" id="add-cat-color-preview" style="background-color: #5b8cff;"></span>
+              </span>
+              <input type="color" name="color" id="add-cat-color-input" value="#5b8cff" oninput="document.getElementById('add-cat-color-preview').style.backgroundColor = this.value" class="pinwheel-color-input">
+            </label>
+            <button type="submit" class="btn-sm-accent" style="white-space: nowrap;">+ Add Category</button>
+          </form>
+
+          <div class="category-list" id="category-list">
+            {% for c in categories %}
+            <div class="category-chip cat-btn cat-btn-{{ c.name|css_class }}" draggable="true" data-name="{{ c.name }}" data-color="{{ c.color }}" data-feeds="{{ c.feed_count }}">
+              <span class="chip-drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
+              <span class="chip-label">{{ c.name }}</span>
+              <button type="button" 
+                      onclick="openCategoryModal('{{ c.name|escape }}', '{{ c.color }}', {{ c.feed_count }})" 
+                      class="chip-edit-btn" 
+                      title="Edit {{ c.name }}">&#9998;</button>
+            </div>
+            {% endfor %}
+            <span class="category-inline-hint" id="category-reorder-hint">&#8592; Drag to reorder</span>
+          </div>
         </div>
       </div>
     </div>
@@ -438,6 +453,222 @@
 
     <!-- Hidden form for deletion -->
     <form id="category-delete-form" method="post" action="" style="display: none;"></form>
+  </div>
+</div>
+
+<!-- Theme Customizer Modal -->
+<div id="theme-modal" class="modal-backdrop" style="display: none;" onclick="handleThemeBackdropClick(event)">
+  <div class="modal-card theme-modal-card">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3 class="modal-title">🎨 Theme &amp; Appearance Customizer</h3>
+        <span id="modal-theme-badge" class="theme-pill-badge">{{ active_theme_name }}</span>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeThemeModal()" title="Close">&times;</button>
+    </div>
+
+    <form id="theme-form" method="post" action="/settings/update-theme">
+      <input type="hidden" name="theme_name" id="input-theme-name" value="{{ active_theme }}">
+
+      <div class="modal-body theme-modal-body">
+        <!-- Preset Palettes -->
+        <div class="theme-field-group">
+          <div class="theme-group-label">Curated Presets</div>
+          <div class="theme-presets-grid">
+            {% for p in theme_presets %}
+            <div class="theme-preset-card {% if active_theme == p.id %}active{% endif %}"
+                 id="preset-card-{{ p.id }}"
+                 onclick="selectThemePreset('{{ p.id }}')"
+                 title="{{ p.description }}">
+              <div class="theme-preset-swatches">
+                <span class="theme-swatch" style="background: {{ p.colors.bg }};" title="Background"></span>
+                <span class="theme-swatch" style="background: {{ p.colors.bg_card }};" title="Cards"></span>
+                <span class="theme-swatch" style="background: {{ p.colors.border }};" title="Border"></span>
+                <span class="theme-swatch" style="background: {{ p.colors.accent }};" title="Accent"></span>
+              </div>
+              <div class="theme-preset-info">
+                <span class="theme-preset-name">{{ p.name }}</span>
+                <span class="theme-preset-check">✓</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Saved Custom Themes -->
+        <div class="theme-field-group" id="theme-saved-group" {% if not custom_themes %}style="display: none;"{% endif %}>
+          <div class="theme-group-label">Your Saved Themes</div>
+          <div class="theme-presets-grid" id="theme-saved-grid">
+            {% for ct in custom_themes %}
+            <div class="theme-preset-card theme-saved-card {% if active_theme == ct.id %}active{% endif %}"
+                 id="preset-card-{{ ct.id }}"
+                 onclick="selectSavedTheme('{{ ct.id }}')"
+                 title="{{ ct.name }}">
+              <div class="theme-preset-swatches">
+                <span class="theme-swatch" style="background: {{ ct.colors.bg }};"></span>
+                <span class="theme-swatch" style="background: {{ ct.colors.bg_card }};"></span>
+                <span class="theme-swatch" style="background: {{ ct.colors.border }};"></span>
+                <span class="theme-swatch" style="background: {{ ct.colors.accent }};"></span>
+              </div>
+              <div class="theme-preset-info">
+                <span class="theme-preset-name">{{ ct.name }}</span>
+                <span class="theme-preset-check">✓</span>
+              </div>
+              <button type="button" class="theme-delete-btn" onclick="deleteCustomTheme({{ ct.db_id }}, event)" title="Delete saved theme">&times;</button>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Theme Name Field -->
+        <div class="theme-field-group">
+          <div class="theme-group-label">Theme Name <span class="theme-optional-hint">(name this theme to save as a preset)</span></div>
+          <div class="theme-name-wrapper">
+            <input type="text"
+                   id="input-custom-theme-name"
+                   name="theme_custom_name"
+                   class="modal-input theme-name-input"
+                   placeholder="e.g. Midnight Sapphire"
+                   autocomplete="off"
+                   maxlength="30"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();submitSaveThemeInline(event);}">
+            <button type="button" class="btn-modal-primary btn-save-theme-inline" onclick="submitSaveThemeInline(event)" title="Save this theme with the name entered">
+              <span>💾 Save Theme</span>
+            </button>
+            <button type="button" id="name-delete-theme-btn" class="btn-modal-danger btn-delete-theme-inline" onclick="deleteCurrentSelectedTheme()" style="display: none; white-space: nowrap;" title="Delete this saved theme">
+              <span>🗑 Delete</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Individual Color Customization -->
+        <div class="theme-field-group">
+          <div class="theme-group-label">Customize Individual Colors</div>
+          <div class="theme-colors-grid">
+            <div class="theme-color-item">
+              <label class="theme-color-label" for="picker-theme-bg">
+                <span>Background</span>
+                <small>App body canvas</small>
+              </label>
+              <div class="theme-color-control">
+                <input type="color" id="picker-theme-bg" value="{{ theme_colors.bg }}" oninput="syncThemeColor('bg', this.value)">
+                <input type="text" id="hex-theme-bg" name="theme_bg" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.bg }}" oninput="syncThemeColor('bg', this.value, true)">
+              </div>
+            </div>
+
+            <div class="theme-color-item">
+              <label class="theme-color-label" for="picker-theme-bg-card">
+                <span>Cards &amp; Panels</span>
+                <small>Cards, lists, settings</small>
+              </label>
+              <div class="theme-color-control">
+                <input type="color" id="picker-theme-bg-card" value="{{ theme_colors.bg_card }}" oninput="syncThemeColor('bg_card', this.value)">
+                <input type="text" id="hex-theme-bg-card" name="theme_bg_card" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.bg_card }}" oninput="syncThemeColor('bg_card', this.value, true)">
+              </div>
+            </div>
+
+            <div class="theme-color-item">
+              <label class="theme-color-label" for="picker-theme-bg-elevated">
+                <span>Topbar &amp; Header</span>
+                <small>Sticky topbar &amp; modal headers</small>
+              </label>
+              <div class="theme-color-control">
+                <input type="color" id="picker-theme-bg-elevated" value="{{ theme_colors.bg_elevated }}" oninput="syncThemeColor('bg_elevated', this.value)">
+                <input type="text" id="hex-theme-bg-elevated" name="theme_bg_elevated" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.bg_elevated }}" oninput="syncThemeColor('bg_elevated', this.value, true)">
+              </div>
+            </div>
+
+            <div class="theme-color-item">
+              <label class="theme-color-label" for="picker-theme-border">
+                <span>Borders &amp; Dividers</span>
+                <small>Card outlines &amp; separators</small>
+              </label>
+              <div class="theme-color-control">
+                <input type="color" id="picker-theme-border" value="{{ theme_colors.border }}" oninput="syncThemeColor('border', this.value)">
+                <input type="text" id="hex-theme-border" name="theme_border" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.border }}" oninput="syncThemeColor('border', this.value, true)">
+              </div>
+            </div>
+
+            <div class="theme-color-item">
+              <label class="theme-color-label" for="picker-theme-text">
+                <span>Primary Text</span>
+                <small>Headlines &amp; primary labels</small>
+              </label>
+              <div class="theme-color-control">
+                <input type="color" id="picker-theme-text" value="{{ theme_colors.text }}" oninput="syncThemeColor('text', this.value)">
+                <input type="text" id="hex-theme-text" name="theme_text" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.text }}" oninput="syncThemeColor('text', this.value, true)">
+              </div>
+            </div>
+
+            <div class="theme-color-item">
+              <label class="theme-color-label" for="picker-theme-text-dim">
+                <span>Muted Text</span>
+                <small>Dates, hints &amp; domains</small>
+              </label>
+              <div class="theme-color-control">
+                <input type="color" id="picker-theme-text-dim" value="{{ theme_colors.text_dim }}" oninput="syncThemeColor('text_dim', this.value)">
+                <input type="text" id="hex-theme-text-dim" name="theme_text_dim" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.text_dim }}" oninput="syncThemeColor('text_dim', this.value, true)">
+              </div>
+            </div>
+
+            <div class="theme-color-item" style="grid-column: 1 / -1;">
+              <label class="theme-color-label" for="picker-theme-accent">
+                <span>Accent Color</span>
+                <small>Links, active chips, buttons &amp; highlights</small>
+              </label>
+              <div class="theme-color-control">
+                <input type="color" id="picker-theme-accent" value="{{ theme_colors.accent }}" oninput="syncThemeColor('accent', this.value)">
+                <input type="text" id="hex-theme-accent" name="theme_accent" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.accent }}" oninput="syncThemeColor('accent', this.value, true)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Interactive Mini Preview -->
+        <div class="theme-field-group">
+          <div class="theme-group-label">Live Preview</div>
+          <div class="theme-live-preview" id="theme-live-preview-box">
+            <div class="preview-mini-topbar" id="preview-topbar">
+              <div class="preview-topbar-brand">
+                <span class="preview-dot" id="preview-dot"></span>
+                <span>News Curator</span>
+              </div>
+              <span class="preview-accent-chip" id="preview-accent-chip">Live Preview</span>
+            </div>
+            <div class="preview-mini-body" id="preview-body">
+              <div class="preview-mini-card" id="preview-card">
+                <div class="preview-card-header">
+                  <span class="preview-category-badge" id="preview-badge">Computing</span>
+                  <span class="preview-time" id="preview-time">12m ago</span>
+                </div>
+                <div class="preview-card-title" id="preview-title">Voyager 1 Resumes Interstellar Telemetry Signals</div>
+                <div class="preview-card-footer">
+                  <span class="preview-domain" id="preview-domain">arstechnica.com</span>
+                  <button type="button" class="preview-action-btn" id="preview-btn">Read Article</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <div class="modal-footer-left">
+          <button type="button" id="footer-delete-theme-btn" class="btn-modal-danger" onclick="deleteCurrentSelectedTheme()" style="display: none;" title="Delete this saved custom theme">Delete Theme</button>
+          <button type="button" class="btn-modal-secondary" onclick="confirmResetTheme()">Reset to Default</button>
+        </div>
+        <div class="modal-footer-right">
+          <button type="button" class="btn-modal-secondary" onclick="closeThemeModal()">Cancel</button>
+          <button type="submit" class="btn-modal-primary">Save &amp; Apply Theme</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Hidden form for reset -->
+    <form id="theme-reset-form" method="post" action="/settings/reset-theme" style="display: none;"></form>
+    <!-- Hidden form for custom theme deletion -->
+    <form id="theme-delete-form" method="post" action="" style="display: none;"></form>
   </div>
 </div>
 
@@ -651,6 +882,8 @@ function updateFaviconFileName(input) {
   });
 
   function saveCategoryOrder() {
+    const hint = document.getElementById('category-reorder-hint');
+    if (hint) list.appendChild(hint);
     const orderedChips = Array.from(list.querySelectorAll('.category-chip'));
     const order = orderedChips.map(c => c.dataset.name).filter(Boolean);
 
@@ -677,6 +910,420 @@ function updateFaviconFileName(input) {
     });
   }
 })();
+
+/* --- THEME CUSTOMIZER LOGIC --- */
+let SAVED_THEME_COLORS = {{ theme_colors | tojson }};
+let SAVED_THEME_ID = "{{ active_theme }}";
+const THEME_PRESETS_DATA = {{ theme_presets | tojson }};
+const CUSTOM_THEMES_DATA = {{ custom_themes | tojson }};
+
+let currentThemeDraft = Object.assign({}, SAVED_THEME_COLORS);
+let currentThemeId = SAVED_THEME_ID;
+
+function openThemeModal() {
+  currentThemeDraft = Object.assign({}, SAVED_THEME_COLORS);
+  currentThemeId = SAVED_THEME_ID;
+  document.getElementById('input-theme-name').value = currentThemeId;
+
+  const nameInput = document.getElementById('input-custom-theme-name');
+  if (nameInput) {
+    if (currentThemeId.startsWith('custom_')) {
+      const ct = CUSTOM_THEMES_DATA.find(t => t.id === currentThemeId);
+      nameInput.value = ct ? ct.name : '';
+    } else {
+      nameInput.value = '';
+    }
+  }
+
+  updateThemeBadge(currentThemeId);
+  updateDeleteButtonsVisibility();
+
+  document.querySelectorAll('.theme-preset-card').forEach(card => {
+    card.classList.toggle('active', card.id === 'preset-card-' + currentThemeId);
+  });
+
+  updateThemeControlsFromDraft();
+  updateLivePreview();
+  const modal = document.getElementById('theme-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeThemeModal() {
+  const modal = document.getElementById('theme-modal');
+  if (modal) modal.style.display = 'none';
+  revertLiveDOMTheme();
+}
+
+function handleThemeBackdropClick(e) {
+  if (e.target.id === 'theme-modal') {
+    closeThemeModal();
+  }
+}
+
+function revertLiveDOMTheme() {
+  const keys = ['--bg', '--bg-elevated', '--bg-card', '--border', '--text', '--text-dim', '--accent'];
+  keys.forEach(k => document.documentElement.style.removeProperty(k));
+}
+
+function applyLiveDOMTheme(colors) {
+  document.documentElement.style.setProperty('--bg', colors.bg);
+  document.documentElement.style.setProperty('--bg-elevated', colors.bg_elevated);
+  document.documentElement.style.setProperty('--bg-card', colors.bg_card);
+  document.documentElement.style.setProperty('--border', colors.border);
+  document.documentElement.style.setProperty('--text', colors.text);
+  document.documentElement.style.setProperty('--text-dim', colors.text_dim);
+  document.documentElement.style.setProperty('--accent', colors.accent);
+}
+
+function updateThemeBadge(themeId) {
+  const badge = document.getElementById('modal-theme-badge');
+  if (!badge) return;
+  const preset = THEME_PRESETS_DATA.find(p => p.id === themeId);
+  if (preset) {
+    badge.textContent = preset.name;
+    return;
+  }
+  const custom = CUSTOM_THEMES_DATA.find(ct => ct.id === themeId);
+  if (custom) {
+    badge.textContent = custom.name;
+    return;
+  }
+  badge.textContent = 'Custom Theme';
+}
+
+function updateDeleteButtonsVisibility() {
+  const isSavedTheme = Boolean(currentThemeId && currentThemeId.startsWith('custom_'));
+  const footerBtn = document.getElementById('footer-delete-theme-btn');
+  const nameBtn = document.getElementById('name-delete-theme-btn');
+  if (footerBtn) footerBtn.style.display = isSavedTheme ? 'inline-block' : 'none';
+  if (nameBtn) nameBtn.style.display = isSavedTheme ? 'inline-flex' : 'none';
+}
+
+function selectThemePreset(presetId) {
+  const preset = THEME_PRESETS_DATA.find(p => p.id === presetId);
+  if (!preset) return;
+  currentThemeId = presetId;
+  currentThemeDraft = Object.assign({}, preset.colors);
+  document.getElementById('input-theme-name').value = presetId;
+  
+  const nameInput = document.getElementById('input-custom-theme-name');
+  if (nameInput) nameInput.value = '';
+
+  updateThemeBadge(presetId);
+  updateDeleteButtonsVisibility();
+
+  document.querySelectorAll('.theme-preset-card').forEach(card => {
+    card.classList.toggle('active', card.id === 'preset-card-' + presetId);
+  });
+
+  updateThemeControlsFromDraft();
+  updateLivePreview();
+  applyLiveDOMTheme(currentThemeDraft);
+}
+
+function selectSavedTheme(themeId) {
+  const theme = CUSTOM_THEMES_DATA.find(t => t.id === themeId);
+  if (!theme) return;
+  currentThemeId = themeId;
+  currentThemeDraft = Object.assign({}, theme.colors);
+  document.getElementById('input-theme-name').value = themeId;
+
+  const nameInput = document.getElementById('input-custom-theme-name');
+  if (nameInput) nameInput.value = theme.name;
+
+  updateThemeBadge(themeId);
+  updateDeleteButtonsVisibility();
+
+  document.querySelectorAll('.theme-preset-card').forEach(card => {
+    card.classList.toggle('active', card.id === 'preset-card-' + themeId);
+  });
+
+  updateThemeControlsFromDraft();
+  updateLivePreview();
+  applyLiveDOMTheme(currentThemeDraft);
+}
+
+function renderSavedThemeCard(themeObj) {
+  const savedGrid = document.getElementById('theme-saved-grid');
+  if (!savedGrid) return;
+  let card = document.getElementById('preset-card-' + themeObj.id);
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'preset-card-' + themeObj.id;
+    card.className = 'theme-preset-card theme-saved-card';
+    savedGrid.appendChild(card);
+  }
+  card.title = themeObj.name;
+  card.onclick = function() { selectSavedTheme(themeObj.id); };
+  card.innerHTML = `
+    <div class="theme-preset-swatches">
+      <span class="theme-swatch" style="background: ${themeObj.colors.bg};"></span>
+      <span class="theme-swatch" style="background: ${themeObj.colors.bg_card};"></span>
+      <span class="theme-swatch" style="background: ${themeObj.colors.border};"></span>
+      <span class="theme-swatch" style="background: ${themeObj.colors.accent};"></span>
+    </div>
+    <div class="theme-preset-info">
+      <span class="theme-preset-name">${themeObj.name}</span>
+      <span class="theme-preset-check">✓</span>
+    </div>
+    <button type="button" class="theme-delete-btn" onclick="deleteCustomTheme(${themeObj.db_id}, event)" title="Delete saved theme">&times;</button>
+  `;
+}
+
+function submitSaveThemeInline(e) {
+  if (e) e.preventDefault();
+  const nameInput = document.getElementById('input-custom-theme-name');
+  const themeName = nameInput ? nameInput.value.trim() : '';
+  if (!themeName) {
+    alert("Please enter a theme name to save it.");
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  const saveBtn = document.querySelector('.btn-save-theme-inline');
+  const origBtnContent = saveBtn ? saveBtn.innerHTML : '';
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span>⏳ Saving...</span>';
+  }
+
+  const formEl = document.getElementById('theme-form');
+  const formData = new FormData(formEl);
+  formData.set('theme_custom_name', themeName);
+
+  fetch('/settings/update-theme', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json'
+    },
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      SAVED_THEME_ID = data.theme_id;
+      SAVED_THEME_COLORS = Object.assign({}, data.colors);
+      currentThemeId = data.theme_id;
+      currentThemeDraft = Object.assign({}, data.colors);
+      document.getElementById('input-theme-name').value = data.theme_id;
+
+      const existingIdx = CUSTOM_THEMES_DATA.findIndex(t => t.id === data.theme_id || t.name === data.theme_name);
+      const themeObj = {
+        id: data.theme_id,
+        db_id: data.db_id,
+        name: data.theme_name,
+        colors: data.colors
+      };
+      if (existingIdx !== -1) {
+        CUSTOM_THEMES_DATA[existingIdx] = themeObj;
+      } else {
+        CUSTOM_THEMES_DATA.push(themeObj);
+      }
+
+      const savedGroup = document.getElementById('theme-saved-group');
+      if (savedGroup) savedGroup.style.display = '';
+
+      renderSavedThemeCard(themeObj);
+
+      document.querySelectorAll('.theme-preset-card').forEach(c => {
+        c.classList.toggle('active', c.id === 'preset-card-' + data.theme_id);
+      });
+
+      updateThemeBadge(data.theme_id);
+      updateDeleteButtonsVisibility();
+
+      const mainBadge = document.getElementById('active-theme-badge-display');
+      if (mainBadge) mainBadge.textContent = data.theme_name;
+
+      const dynLink = document.querySelector('link[href*="/dynamic.css"]');
+      if (dynLink && data.theme_version) {
+        dynLink.href = '/dynamic.css?v=0.5&tv=' + data.theme_version;
+      }
+
+      if (saveBtn) {
+        saveBtn.innerHTML = '<span>✓ Saved!</span>';
+        setTimeout(() => {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = origBtnContent;
+        }, 1500);
+      }
+    } else {
+      alert("Could not save theme. Please try again.");
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = origBtnContent;
+      }
+    }
+  })
+  .catch(err => {
+    console.error("Error saving theme:", err);
+    alert("Error saving theme.");
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = origBtnContent;
+    }
+  });
+}
+
+function deleteCurrentSelectedTheme() {
+  if (!currentThemeId || !currentThemeId.startsWith('custom_')) return;
+  const dbId = parseInt(currentThemeId.replace('custom_', ''), 10);
+  deleteCustomTheme(dbId);
+}
+
+function deleteCustomTheme(dbId, event) {
+  if (event) event.stopPropagation();
+  const theme = CUSTOM_THEMES_DATA.find(t => t.db_id === dbId || t.id === 'custom_' + dbId);
+  const name = theme ? theme.name : 'this theme';
+  if (!confirm("Are you sure you want to delete the saved theme '" + name + "'?")) {
+    return;
+  }
+
+  fetch('/settings/delete-theme/' + dbId, {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      // 1. Remove from local array
+      const idx = CUSTOM_THEMES_DATA.findIndex(t => t.db_id === dbId || t.id === 'custom_' + dbId);
+      if (idx !== -1) CUSTOM_THEMES_DATA.splice(idx, 1);
+
+      // 2. Remove card element from DOM
+      const cardEl = document.getElementById('preset-card-custom_' + dbId);
+      if (cardEl) cardEl.remove();
+
+      // 3. Hide saved themes section if empty
+      if (CUSTOM_THEMES_DATA.length === 0) {
+        const group = document.getElementById('theme-saved-group');
+        if (group) group.style.display = 'none';
+      }
+
+      // 4. If this was the theme active in the customizer, fall back to Default Dark
+      if (currentThemeId === 'custom_' + dbId) {
+        selectThemePreset('default');
+        const nameInput = document.getElementById('input-custom-theme-name');
+        if (nameInput) nameInput.value = '';
+      }
+
+      // 5. If it was active on the main page, update active theme display
+      if (data.was_active) {
+        SAVED_THEME_ID = 'default';
+        const defPreset = THEME_PRESETS_DATA.find(p => p.id === 'default');
+        if (defPreset) SAVED_THEME_COLORS = Object.assign({}, defPreset.colors);
+
+        const mainBadge = document.getElementById('active-theme-badge-display');
+        if (mainBadge) mainBadge.textContent = 'Default Dark';
+
+        const dynLink = document.querySelector('link[href*="/dynamic.css"]');
+        if (dynLink && data.theme_version) {
+          dynLink.href = '/dynamic.css?v=0.5&tv=' + data.theme_version;
+        }
+      }
+
+      updateDeleteButtonsVisibility();
+    } else {
+      alert("Failed to delete theme.");
+    }
+  })
+  .catch(err => {
+    console.error("Error deleting theme:", err);
+    alert("Error deleting theme.");
+  });
+}
+
+function syncThemeColor(token, value, fromHexInput = false) {
+  if (fromHexInput) {
+    if (!value.startsWith('#')) value = '#' + value;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(value)) return;
+    const picker = document.getElementById('picker-theme-' + token.replace('_', '-'));
+    if (picker) picker.value = value;
+  } else {
+    const hexInput = document.getElementById('hex-theme-' + token.replace('_', '-'));
+    if (hexInput) hexInput.value = value;
+  }
+
+  currentThemeDraft[token] = value;
+  currentThemeId = 'custom';
+  document.getElementById('input-theme-name').value = 'custom';
+  updateThemeBadge('custom');
+  updateDeleteButtonsVisibility();
+
+  document.querySelectorAll('.theme-preset-card').forEach(card => card.classList.remove('active'));
+
+  updateLivePreview();
+  applyLiveDOMTheme(currentThemeDraft);
+}
+
+function updateThemeControlsFromDraft() {
+  for (const token of ['bg', 'bg_card', 'bg_elevated', 'border', 'text', 'text_dim', 'accent']) {
+    const picker = document.getElementById('picker-theme-' + token.replace('_', '-'));
+    const hexInput = document.getElementById('hex-theme-' + token.replace('_', '-'));
+    if (picker && currentThemeDraft[token]) picker.value = currentThemeDraft[token];
+    if (hexInput && currentThemeDraft[token]) hexInput.value = currentThemeDraft[token];
+  }
+}
+
+function updateLivePreview() {
+  const c = currentThemeDraft;
+  const previewBox = document.getElementById('theme-live-preview-box');
+  const previewTopbar = document.getElementById('preview-topbar');
+  const previewBody = document.getElementById('preview-body');
+  const previewCard = document.getElementById('preview-card');
+  const previewBadge = document.getElementById('preview-badge');
+  const previewTime = document.getElementById('preview-time');
+  const previewTitle = document.getElementById('preview-title');
+  const previewDomain = document.getElementById('preview-domain');
+  const previewBtn = document.getElementById('preview-btn');
+  const previewAccentChip = document.getElementById('preview-accent-chip');
+  const previewDot = document.getElementById('preview-dot');
+
+  if (previewBox) previewBox.style.borderColor = c.border;
+  if (previewTopbar) {
+    previewTopbar.style.backgroundColor = c.bg_elevated;
+    previewTopbar.style.borderBottomColor = c.border;
+    previewTopbar.style.color = c.text;
+  }
+  if (previewDot) previewDot.style.backgroundColor = c.accent;
+  if (previewBody) previewBody.style.backgroundColor = c.bg;
+  if (previewCard) {
+    previewCard.style.backgroundColor = c.bg_card;
+    previewCard.style.borderColor = c.border;
+  }
+  if (previewTitle) previewTitle.style.color = c.text;
+  if (previewTime) previewTime.style.color = c.text_dim;
+  if (previewDomain) previewDomain.style.color = c.text_dim;
+  if (previewBtn) {
+    previewBtn.style.backgroundColor = c.accent;
+    previewBtn.style.color = '#ffffff';
+  }
+  if (previewAccentChip) {
+    previewAccentChip.style.backgroundColor = c.accent + '25';
+    previewAccentChip.style.color = c.accent;
+    previewAccentChip.style.borderColor = c.accent + '55';
+  }
+  if (previewBadge) {
+    previewBadge.style.borderColor = c.border;
+    previewBadge.style.color = c.accent;
+    previewBadge.style.backgroundColor = c.accent + '18';
+  }
+}
+
+function confirmResetTheme() {
+  if (confirm("Reset theme back to Default Dark?")) {
+    document.getElementById('theme-reset-form').submit();
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const themeModal = document.getElementById('theme-modal');
+    if (themeModal && themeModal.style.display !== 'none') {
+      closeThemeModal();
+    }
+  }
+});
 </script>
 
 {% endblock %}
