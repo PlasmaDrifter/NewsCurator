@@ -3,31 +3,31 @@
 
 <div class="controls">
   <div class="cat-buttons">
-    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}" class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}">All</a>
+    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}" class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}">All</a>
     {% for c in categories %}
-    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}" class="cat-btn cat-btn-{{ c.name|css_class }} {% if current_category == c.name %}active{% endif %}">{{ c.name }}</a>
+    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}" class="cat-btn cat-btn-{{ c.name|css_class }} {% if current_category == c.name %}active{% endif %}">{{ c.name }}</a>
     {% endfor %}
   </div>
 
   <div class="right-controls">
-    <select name="source" onchange="window.location='/?category={{ current_category }}&q={{ search_query }}&source='+this.value">
+    {% if enable_unread_filter %}
+    <a href="/?category={{ current_category }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if not is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}"
+       class="unread-filter-btn {% if is_unread_view %}active{% endif %} {% if unread_icon_only %}icon-only{% endif %}"
+       title="{% if is_unread_view %}Showing unread only (click to show all){% else %}Filter to unread articles{% endif %}">
+      <span class="unread-icon">◎</span>{% if not unread_icon_only %} <span class="unread-label">Unread</span>{% endif %}
+    </a>
+
+    <button type="button" class="mark-all-read-btn {% if unread_icon_only %}icon-only{% endif %}" onclick="markAllAsRead()" title="Mark all matching articles as read">
+      <span class="mark-read-icon">✓</span>{% if not unread_icon_only %} <span class="mark-read-text">Mark All Read</span>{% endif %}
+    </button>
+    {% endif %}
+
+    <select name="source" onchange="window.location='/?category={{ current_category }}&q={{ search_query }}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}&source='+this.value">
       <option value="all" {% if current_source == "all" %}selected{% endif %}>All sources</option>
       {% for f in feeds %}
       <option value="{{ f.id }}" {% if current_source == f.id|string %}selected{% endif %}>{{ f.name }}</option>
       {% endfor %}
     </select>
-
-    <button type="button" id="view-toggle-btn" class="view-toggle-btn" onclick="toggleViewMode()" title="Toggle Grid / Table View">
-      <span id="view-toggle-icon">☰</span> <span id="view-toggle-text">Table</span>
-    </button>
-
-    <form method="post" action="/refresh" id="refresh-form" onsubmit="handleRefreshSubmit(this)">
-      <input type="hidden" name="redirect_to" value="/?category={{ current_category }}&source={{ current_source }}&q={{ search_query }}">
-      <button type="submit" class="refresh-btn" id="refresh-btn">
-        <span class="refresh-icon" id="refresh-icon">⟳</span>
-        <span class="refresh-text" id="refresh-text">Refresh</span>
-      </button>
-    </form>
   </div>
 </div>
 
@@ -81,6 +81,7 @@ const currentCategory = {{ current_category | tojson }};
 const currentSource = {{ current_source | tojson }};
 const searchQuery = {{ search_query | tojson }};
 const isBookmarkedView = {{ is_bookmarked_view | tojson }};
+const isUnreadView = {{ is_unread_view | tojson }};
 const coloredBorders = {{ colored_borders | tojson }};
 const borderOpacity = {{ border_opacity | tojson }};
 const borderSize = {{ border_size | tojson }};
@@ -149,6 +150,69 @@ function markAsRead(articleId) {
   }).catch(err => console.error('Failed to mark article as read:', err));
 }
 
+function markAllAsRead() {
+  const btn = document.querySelector('.mark-all-read-btn');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    const isIconOnly = btn.classList.contains('icon-only');
+    btn.innerHTML = isIconOnly ? '<span class="mark-read-icon">⏳</span>' : '<span class="mark-read-icon">⏳</span> <span>Marking...</span>';
+  }
+
+  const formData = new FormData();
+  formData.append('category', currentCategory);
+  formData.append('source', currentSource);
+  formData.append('q', searchQuery);
+
+  fetch('/articles/mark-all-read', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      const cards = document.querySelectorAll('.card:not(.read)');
+      cards.forEach(card => {
+        card.classList.add('read');
+      });
+
+      showToast(`Marked ${data.count} article${data.count === 1 ? '' : 's'} as read`);
+
+      if (isUnreadView && data.count > 0) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    }
+  })
+  .catch(err => {
+    console.error('Failed to mark all as read:', err);
+    showToast('Failed to mark articles as read', true);
+  })
+  .finally(() => {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  });
+}
+
+function showToast(message, isError = false) {
+  let toast = document.getElementById('global-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'global-toast';
+    toast.className = 'global-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.className = `global-toast visible ${isError ? 'error' : ''}`;
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.classList.remove('visible');
+  }, 2500);
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -214,6 +278,7 @@ async function loadMoreArticles() {
       source: currentSource,
       q: searchQuery,
       bookmarked: isBookmarkedView ? 1 : 0,
+      unread: isUnreadView ? 1 : 0,
       offset: currentOffset,
       limit: 60
     });

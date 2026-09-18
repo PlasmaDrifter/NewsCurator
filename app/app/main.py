@@ -16,6 +16,11 @@ from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+try:
+    from googlenewsdecoder import gnewsdecoder
+except Exception:
+    gnewsdecoder = None
+
 # Base directory for static files and templates (supports PyInstaller bundle extraction)
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     BUNDLE_DIR = Path(sys._MEIPASS)
@@ -301,6 +306,8 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('open_in_new_tab', '1')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('step_scroll_rows', '3')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('anim_cascade', '1')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enable_unread_filter', '1')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('unread_icon_only', '0')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -341,11 +348,16 @@ def init_db():
                 url TEXT NOT NULL UNIQUE,
                 category TEXT NOT NULL DEFAULT 'computing',
                 enabled INTEGER NOT NULL DEFAULT 1,
-                last_fetched TEXT
+                last_fetched TEXT,
+                last_error TEXT
             )
         """)
         try:
             conn.execute("ALTER TABLE feeds ADD COLUMN last_fetched TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE feeds ADD COLUMN last_error TEXT")
         except Exception:
             pass
         conn.execute("""
@@ -365,6 +377,10 @@ def init_db():
         """)
         try:
             conn.execute("ALTER TABLE articles ADD COLUMN is_bookmarked INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE articles ADD COLUMN content TEXT")
         except Exception:
             pass
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status)")
@@ -446,15 +462,25 @@ def clean_summary(entry, max_len=500):
 
 
 def fetch_feed(conn, feed_row):
+    err_msg = None
     try:
         parsed = feedparser.parse(feed_row["url"])
+        if getattr(parsed, "status", 200) >= 400:
+            err_msg = f"HTTP {parsed.status}"
+        elif getattr(parsed, "bozo", 0) and not getattr(parsed, "entries", None):
+            err_msg = str(getattr(parsed, "bozo_exception", "Parse error"))[:120]
     except Exception as e:
         print(f"Error fetching {feed_row['name']}: {e}")
+        err_msg = str(e)[:120]
+        conn.execute(
+            "UPDATE feeds SET last_fetched = ?, last_error = ? WHERE id = ?",
+            (datetime.now(timezone.utc).isoformat(), err_msg, feed_row["id"])
+        )
         return 0
 
     conn.execute(
-        "UPDATE feeds SET last_fetched = ? WHERE id = ?",
-        (datetime.now(timezone.utc).isoformat(), feed_row["id"])
+        "UPDATE feeds SET last_fetched = ?, last_error = ? WHERE id = ?",
+        (datetime.now(timezone.utc).isoformat(), err_msg, feed_row["id"])
     )
 
     new_count = 0
@@ -473,14 +499,21 @@ def fetch_feed(conn, feed_row):
         title = entry.get("title", "(no title)")
         link = entry.get("link", "")
         summary = clean_summary(entry)
+        raw_content = ""
+        if "content" in entry and entry.content:
+            raw_content = entry.content[0].get("value", "")
+        elif "summary_detail" in entry and entry.summary_detail:
+            raw_content = entry.summary_detail.get("value", "")
+        elif "summary" in entry:
+            raw_content = entry.summary or ""
         image_url = extract_image(entry)
 
         conn.execute(
             """INSERT OR IGNORE INTO articles
-               (feed_id, guid, title, link, summary, image_url, published, fetched_at, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'unread')""",
+               (feed_id, guid, title, link, summary, content, image_url, published, fetched_at, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'unread')""",
             (
-                feed_row["id"], guid, title, link, summary, image_url,
+                feed_row["id"], guid, title, link, summary, raw_content, image_url,
                 published, datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -558,12 +591,14 @@ def startup():
     t.start()
 
 
-def query_articles(conn, category="all", source="all", q="", bookmarked=False, offset=0, limit=60):
+def query_articles(conn, category="all", source="all", q="", bookmarked=False, unread_only=False, offset=0, limit=60):
     params = []
     where_clauses = ["1=1"]
 
     if bookmarked:
         where_clauses.append("articles.is_bookmarked = 1")
+    if unread_only:
+        where_clauses.append("articles.status = 'unread'")
     if category != "all":
         where_clauses.append("feeds.category = ?")
         params.append(category)
@@ -595,9 +630,16 @@ def query_articles(conn, category="all", source="all", q="", bookmarked=False, o
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0):
+def index(request: Request, category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, unread: int = 0):
     with closing(get_db()) as conn:
-        articles, has_more = query_articles(conn, category=category, source=source, q=q, bookmarked=bool(bookmarked), offset=0, limit=60)
+        enable_unread_filter = get_setting(conn, "enable_unread_filter", "1") == "1"
+        unread_icon_only = get_setting(conn, "unread_icon_only", "0") == "1"
+        is_unread_view = bool(unread) and enable_unread_filter
+        articles, has_more = query_articles(
+            conn, category=category, source=source, q=q,
+            bookmarked=bool(bookmarked), unread_only=is_unread_view,
+            offset=0, limit=60
+        )
         feeds = conn.execute("SELECT * FROM feeds ORDER BY category, name").fetchall()
         categories = get_categories(conn)
         colored_borders = get_setting(conn, "colored_borders") == "1"
@@ -619,6 +661,9 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "current_category": category,
         "current_source": source,
         "is_bookmarked_view": bool(bookmarked),
+        "is_unread_view": is_unread_view,
+        "enable_unread_filter": enable_unread_filter,
+        "unread_icon_only": unread_icon_only,
         "colored_borders": colored_borders,
         "border_opacity": border_opacity,
         "border_size": border_size,
@@ -630,10 +675,14 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
 
 
 @app.get("/api/articles")
-def api_articles(category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, offset: int = 0, limit: int = 60):
+def api_articles(category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, unread: int = 0, offset: int = 0, limit: int = 60):
     with closing(get_db()) as conn:
+        rows, has_more = query_articles(
+            conn, category=category, source=source, q=q,
+            bookmarked=bool(bookmarked), unread_only=bool(unread),
+            offset=offset, limit=limit
+        )
         border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
-        rows, has_more = query_articles(conn, category=category, source=source, q=q, bookmarked=bool(bookmarked), offset=offset, limit=limit)
         items = []
         for r in rows:
             items.append({
@@ -676,6 +725,17 @@ def set_status(article_id: int, status: str = Form(...), redirect_to: str = Form
     with closing(get_db()) as conn, conn:
         conn.execute("UPDATE articles SET status = ? WHERE id = ?", (status, article_id))
     return RedirectResponse(redirect_to, status_code=303)
+
+
+@app.post("/article/{article_id}/toggle-status")
+def toggle_status(article_id: int):
+    with closing(get_db()) as conn, conn:
+        row = conn.execute("SELECT status FROM articles WHERE id = ?", (article_id,)).fetchone()
+        if row is not None:
+            new_status = "unread" if row["status"] == "read" else "read"
+            conn.execute("UPDATE articles SET status = ? WHERE id = ?", (new_status, article_id))
+            return JSONResponse({"success": True, "status": new_status})
+    return JSONResponse({"success": False}, status_code=404)
 
 
 @app.post("/refresh")
@@ -734,16 +794,43 @@ def edit_feed(feed_id: int, name: str = Form(...), url: str = Form(...), categor
 
 
 
+def compute_feed_health(feed_dict):
+    """Return (status_code, tooltip_text). Status is one of: healthy, idle, error, disabled."""
+    if not feed_dict.get("enabled"):
+        return "disabled", "Disabled: Feed sync is turned off"
+    if feed_dict.get("last_error"):
+        return "error", f"Error: {feed_dict['last_error']}"
+    last_article = feed_dict.get("last_article_at")
+    if not last_article:
+        return "idle", "Idle: No articles recorded yet"
+    try:
+        dt = datetime.fromisoformat(last_article)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        if (datetime.now(timezone.utc) - dt).days > 14:
+            return "idle", "Idle: No new articles in over 14 days"
+    except Exception:
+        pass
+    return "healthy", "Active: Reachable and healthy"
+
+
 @app.get("/feeds", response_class=HTMLResponse)
 def feeds_page(request: Request):
     with closing(get_db()) as conn:
-        feeds = conn.execute("""
-            SELECT feeds.*, COUNT(articles.id) AS article_count
+        feed_rows = conn.execute("""
+            SELECT feeds.*, COUNT(articles.id) AS article_count, MAX(articles.fetched_at) AS last_article_at
             FROM feeds
             LEFT JOIN articles ON articles.feed_id = feeds.id
             GROUP BY feeds.id
             ORDER BY feeds.category, feeds.name
         """).fetchall()
+        feeds = []
+        for r in feed_rows:
+            d = dict(r)
+            status, tooltip = compute_feed_health(d)
+            d["health_status"] = status
+            d["health_tooltip"] = tooltip
+            feeds.append(d)
         categories = get_categories(conn)
         colored_borders = get_setting(conn, "colored_borders") == "1"
         border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
@@ -758,6 +845,8 @@ def feeds_page(request: Request):
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = get_setting(conn, "step_scroll_rows", "3")
         anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
+        enable_unread_filter = get_setting(conn, "enable_unread_filter", "1") == "1"
+        unread_icon_only = get_setting(conn, "unread_icon_only", "0") == "1"
     return templates.TemplateResponse(request, "feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -776,6 +865,8 @@ def feeds_page(request: Request):
         "open_in_new_tab": open_in_new_tab,
         "step_scroll_rows": step_scroll_rows,
         "anim_cascade": anim_cascade,
+        "enable_unread_filter": enable_unread_filter,
+        "unread_icon_only": unread_icon_only,
     })
 
 
@@ -911,6 +1002,58 @@ async def update_anim_cascade(request: Request):
     with closing(get_db()) as conn, conn:
         set_setting(conn, "anim_cascade", anim_cascade)
     return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-unread-filter")
+async def update_unread_filter(request: Request):
+    form = await request.form()
+    enable_unread_filter = "1" if "enable_unread_filter" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "enable_unread_filter", enable_unread_filter)
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-unread-icon-only")
+async def update_unread_icon_only(request: Request):
+    form = await request.form()
+    unread_icon_only = "1" if "unread_icon_only" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "unread_icon_only", unread_icon_only)
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/articles/mark-all-read")
+async def mark_all_read(request: Request):
+    form = await request.form()
+    category = form.get("category", "all")
+    source = form.get("source", "all")
+    q = form.get("q", "")
+    with closing(get_db()) as conn, conn:
+        params = []
+        where_clauses = ["articles.status = 'unread'"]
+        if category != "all":
+            where_clauses.append("feeds.category = ?")
+            params.append(category)
+        if source != "all":
+            where_clauses.append("feeds.id = ?")
+            params.append(source)
+        if q and q.strip():
+            search_term = f"%{q.strip()}%"
+            where_clauses.append("(articles.title LIKE ? OR articles.summary LIKE ?)")
+            params.extend([search_term, search_term])
+        where_sql = " AND ".join(where_clauses)
+        sql = f"""
+            UPDATE articles SET status = 'read'
+            WHERE id IN (
+                SELECT articles.id
+                FROM articles
+                JOIN feeds ON articles.feed_id = feeds.id
+                WHERE {where_sql}
+            )
+        """
+        cursor = conn.execute(sql, params)
+        count = cursor.rowcount
+    return JSONResponse({"success": True, "count": count})
 
 
 def get_contrast_text_color(hex_color):
