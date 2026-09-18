@@ -342,7 +342,7 @@
     <div class="settings-card-body" style="padding: 0; overflow-x: auto;">
       <table class="feeds-table">
         <thead>
-          <tr><th style="width: 44px; text-align: center;">Status</th><th>Name</th><th>Category</th><th>URL</th><th>Articles</th><th>Enabled</th><th></th></tr>
+          <tr><th style="width: 44px; text-align: center;">Status</th><th>Name</th><th class="col-category">Category</th><th class="col-url">URL</th><th class="col-articles">Articles</th><th class="col-enabled">Enabled</th><th class="col-actions">Actions</th></tr>
         </thead>
         <tbody>
         {% for f in feeds %}
@@ -354,7 +354,7 @@
               <span class="view-mode-{{ f.id }}">{{ f.name }}</span>
               <input type="text" name="name" value="{{ f.name }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
             </td>
-            <td>
+            <td class="feed-cat-cell">
               <span class="badge badge-{{ f.category|css_class }} view-mode-{{ f.id }}">{{ f.category }}</span>
               <select name="category" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;">
                 {% for c in categories %}
@@ -363,34 +363,34 @@
               </select>
             </td>
             <td class="feed-url">
-              <span class="view-mode-{{ f.id }}">{{ f.url }}</span>
+              <span class="view-mode-{{ f.id }}" title="{{ f.url }}">{{ f.url }}</span>
               <input type="url" name="url" value="{{ f.url }}" form="edit-form-{{ f.id }}" class="edit-mode-{{ f.id }}" style="display: none; width: 100%;" required>
             </td>
             <td class="article-count {% if f.article_count == 0 %}zero{% endif %}">
               {{ f.article_count }}
               <span style="font-size: 0.8rem; color: {% if f.last_fetched|is_older_than_day %}var(--danger){% else %}var(--text-dim){% endif %}; margin-left: 6px; font-weight: normal; font-style: italic;">({{ f.last_fetched|format_time_ago }})</span>
             </td>
-            <td>
-              <div class="view-mode-{{ f.id }}">
-                <form method="post" action="/feeds/{{ f.id }}/toggle">
+            <td class="col-enabled">
+              <div class="view-mode-{{ f.id }}" style="display: flex; align-items: center;">
+                <form method="post" action="/feeds/{{ f.id }}/toggle" style="margin: 0; display: inline-flex;">
                   <button type="submit">{{ "Disable" if f.enabled else "Enable" }}</button>
                 </form>
               </div>
-              <div class="edit-mode-{{ f.id }}" style="display: none;">
-                <form method="post" action="/feeds/{{ f.id }}/edit" id="edit-form-{{ f.id }}">
+              <div class="edit-mode-{{ f.id }}" style="display: none; align-items: center;">
+                <form method="post" action="/feeds/{{ f.id }}/edit" id="edit-form-{{ f.id }}" style="margin: 0; display: inline-flex;">
                   <button type="submit" class="refresh-btn">Save</button>
                 </form>
               </div>
             </td>
-            <td>
+            <td class="col-actions">
               <div class="view-mode-{{ f.id }}" style="display: flex; gap: 4px; align-items: center;">
                 <button type="button" onclick="enableEdit({{ f.id }})">Edit</button>
                 <form method="post" action="/feeds/{{ f.id }}/delete"
-                      onsubmit="return confirm('Delete this feed and its articles?');">
+                      onsubmit="return confirm('Delete this feed and its articles?');" style="margin: 0; display: inline-flex;">
                   <button type="submit" class="danger">Delete</button>
                 </form>
               </div>
-              <div class="edit-mode-{{ f.id }}" style="display: none;">
+              <div class="edit-mode-{{ f.id }}" style="display: none; align-items: center;">
                 <button type="button" onclick="disableEdit({{ f.id }})">Cancel</button>
               </div>
             </td>

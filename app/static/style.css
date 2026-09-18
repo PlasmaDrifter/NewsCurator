@@ -422,6 +422,8 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 .badge {
+  display: inline-block;
+  white-space: nowrap;
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 0.7rem;
@@ -942,6 +944,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   text-align: left;
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 
 .feeds-table th {
@@ -951,23 +954,88 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background: rgba(0, 0, 0, 0.15);
+  vertical-align: middle;
+}
+
+.feeds-table th.col-category,
+.feeds-table td.feed-cat-cell {
+  width: 1%;
+  white-space: nowrap;
+  min-width: 100px;
+  padding-right: 16px;
+}
+
+.feeds-table th.col-url,
+.feeds-table td.feed-url {
+  padding-left: 8px;
+  padding-right: 14px;
+}
+
+.feeds-table th.col-articles,
+.feeds-table td.article-count {
+  width: 1%;
+  white-space: nowrap;
+  text-align: left;
+  padding-left: 10px;
+  padding-right: 16px;
+}
+
+.feeds-table th.col-enabled,
+.feeds-table td.col-enabled {
+  width: 1%;
+  white-space: nowrap;
+  text-align: left;
+  padding: 8px 6px 8px 6px;
+}
+
+.feeds-table th.col-actions,
+.feeds-table td.col-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: left;
+  padding: 8px 12px 8px 6px;
+}
+
+.feeds-table td button {
+  height: 28px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .feeds-table td form {
-  display: inline;
+  display: inline-flex;
+  align-items: center;
   margin: 0;
 }
 
 .feed-url {
   color: var(--text-dim);
   font-size: 0.8rem;
-  word-break: break-all;
+  white-space: nowrap;
+}
+
+.feed-url span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 450px;
 }
 
 .article-count {
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
-  text-align: right;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.article-count span {
+  white-space: nowrap;
 }
 
 .article-count.zero {
