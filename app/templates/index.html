@@ -36,7 +36,7 @@
   <article id="article-card-{{ a.id }}" class="card {% if a.status == 'read' %}read{% endif %}"
     data-link="{{ a.link }}" data-id="{{ a.id }}"
     onclick="handleCardClick(event, this)" onauxclick="handleCardClick(event, this)"
-    {% if colored_borders and a.category_color %}style="border-color: {{ a.category_color | hex_to_rgba(border_opacity) }} !important; border-width: {{ border_size }}px !important;"{% endif %}>
+    style="--card-idx: {{ loop.index0 % 24 }};{% if colored_borders and a.category_color %} border-color: {{ a.category_color | hex_to_rgba(border_opacity) }} !important; border-width: {{ border_size }}px !important;{% endif %}">
     
     <button type="button" class="card-bookmark-btn {% if a.is_bookmarked %}active{% endif %}"
       title="{% if a.is_bookmarked %}Remove bookmark{% else %}Bookmark article{% endif %}"
@@ -222,12 +222,13 @@ async function loadMoreArticles() {
     
     if (data.articles && data.articles.length > 0) {
       const grid = document.querySelector('.card-grid');
-      data.articles.forEach(a => {
+      data.articles.forEach((a, idx) => {
         const article = document.createElement('article');
         article.id = `article-card-${a.id}`;
         article.className = `card ${a.status === 'read' ? 'read' : ''}`;
         article.setAttribute('data-link', a.link);
         article.setAttribute('data-id', a.id);
+        article.style.setProperty('--card-idx', idx % 24);
         article.onclick = (e) => handleCardClick(e, article);
         article.onauxclick = (e) => handleCardClick(e, article);
         if (coloredBorders && a.category_color) {

@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}News Curator{% endblock %}</title>
 <link rel="icon" href="{{ get_active_favicon() }}?v={{ get_favicon_version() }}">
-<link rel="stylesheet" href="/static/style.css?v=51">
-<link rel="stylesheet" href="/dynamic.css">
+<link rel="stylesheet" href="/static/style.css?v=57">
+<link rel="stylesheet" href="/dynamic.css?v={{ border_opacity|default('0.5') }}">
 </head>
-<body>
+<body class="{% if anim_cascade %}anim-cascade-enabled{% endif %}">
 <header class="topbar">
   <div class="topbar-left">
     <a href="/" class="brand">
