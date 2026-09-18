@@ -162,7 +162,7 @@ h1 {
   top: var(--topbar-height);
   z-index: 15;
   background: var(--bg);
-  padding: 12px 0;
+  padding: 12px 0 6px 0;
   margin-top: 0;
   margin-bottom: 0;
   display: flex;
@@ -285,6 +285,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+  padding-top: 12px;
 }
 
 .card {
@@ -304,6 +305,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  z-index: 5;
 }
 
 .card.read .card-meta,
