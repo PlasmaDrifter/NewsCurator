@@ -89,6 +89,20 @@
           </form>
         </div>
 
+        <!-- Cascading Card Entrance -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Cascading Card Entrance</div>
+            <div class="setting-item-desc">Smooth staggered wave animation when loading articles or changing filters</div>
+          </div>
+          <form method="post" action="/settings/update-anim-cascade" class="setting-item-controls">
+            <label class="toggle-switch" title="Toggle cascading card entrance">
+              <input type="checkbox" name="anim_cascade" {% if anim_cascade %}checked{% endif %} onchange="this.form.submit()">
+              <span class="toggle-slider"></span>
+            </label>
+          </form>
+        </div>
+
         <!-- Website Favicon -->
         <div class="setting-item-row favicon-row">
           <div class="setting-item-info" style="margin-bottom: 6px;">

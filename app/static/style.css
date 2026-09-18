@@ -205,9 +205,14 @@ h1 {
 .cat-btn.active {
   font-weight: 800;
 }
+.cat-btn.active:hover {
+  opacity: 1;
+  filter: brightness(1.08);
+}
 
 .cat-btn-all          { background: #2a2d36; color: #c0c4cc; border-color: #3f4452; }
-.cat-btn-all.active   { background: var(--text); color: var(--bg); border-color: var(--text); }
+.cat-btn-all.active,
+.cat-btn-all.active:hover { background: var(--text); color: var(--bg) !important; border-color: var(--text); }
 
 .right-controls { display: flex; gap: 8px; align-items: center; }
 .right-controls form { margin: 0; display: flex; align-items: center; }
@@ -919,8 +924,8 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .feed-disabled {
   opacity: 0.5;
 }
-.cat-btn:not(.cat-btn-all),
-.cat-btn:not(.cat-btn-all):hover {
+.cat-btn:not(.cat-btn-all):not(.active),
+.cat-btn:not(.cat-btn-all):not(.active):hover {
   color: #c7cbd3;
 }
 
@@ -1921,6 +1926,49 @@ input[type="color"]::-moz-color-swatch {
   transform: scale(1.18);
   border-color: #ffffff !important;
   box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ==========================================================================
+   CASCADING CARD ENTRANCE ANIMATION
+   ========================================================================== */
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.anim-cascade-enabled .card-grid:not(.table-view) .card {
+  animation: cardEntrance 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--card-idx, 0) * 15ms);
+}
+
+@keyframes cardEntranceTable {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+body.anim-cascade-enabled .card-grid.table-view .card {
+  animation: cardEntranceTable 0.16s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--card-idx, 0) * 10ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.anim-cascade-enabled .card-grid .card,
+  body.anim-cascade-enabled .card-grid:not(.table-view) .card,
+  body.anim-cascade-enabled .card-grid.table-view .card {
+    animation: none !important;
+  }
 }
 
 

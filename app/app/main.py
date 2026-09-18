@@ -300,6 +300,7 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('favicon_version', '1')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('open_in_new_tab', '1')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('step_scroll_rows', '3')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('anim_cascade', '1')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -605,6 +606,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = int(get_setting(conn, "step_scroll_rows", "3"))
+        anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
 
     return templates.TemplateResponse(request, "index.html", {
         "request": request,
@@ -623,6 +625,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "three_row_scroll": three_row_scroll,
         "open_in_new_tab": open_in_new_tab,
         "step_scroll_rows": step_scroll_rows,
+        "anim_cascade": anim_cascade,
     })
 
 
@@ -754,6 +757,7 @@ def feeds_page(request: Request):
         three_row_scroll = get_setting(conn, "three_row_scroll", "1") == "1"
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = get_setting(conn, "step_scroll_rows", "3")
+        anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
     return templates.TemplateResponse(request, "feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -771,6 +775,7 @@ def feeds_page(request: Request):
         "three_row_scroll": three_row_scroll,
         "open_in_new_tab": open_in_new_tab,
         "step_scroll_rows": step_scroll_rows,
+        "anim_cascade": anim_cascade,
     })
 
 
@@ -899,6 +904,15 @@ async def update_open_tab(request: Request):
     return RedirectResponse("/feeds", status_code=303)
 
 
+@app.post("/settings/update-anim-cascade")
+async def update_anim_cascade(request: Request):
+    form = await request.form()
+    anim_cascade = "1" if "anim_cascade" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "anim_cascade", anim_cascade)
+    return RedirectResponse("/feeds", status_code=303)
+
+
 def get_contrast_text_color(hex_color):
     """Return '#ffffff' or '#000000' based on the contrast of the hex color."""
     h = hex_color.lstrip("#")
@@ -910,28 +924,48 @@ def get_contrast_text_color(hex_color):
         return "#ffffff"
 
 
+def get_contrast_text_color_blended(hex_color, opacity=1.0, bg_hex="#1a1d24"):
+    """Calculate contrast text color against the color blended over the dark background."""
+    h = hex_color.lstrip("#")
+    try:
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        bg_h = bg_hex.lstrip("#")
+        bg_r, bg_g, bg_b = int(bg_h[0:2], 16), int(bg_h[2:4], 16), int(bg_h[4:6], 16)
+        final_r = opacity * r + (1.0 - opacity) * bg_r
+        final_g = opacity * g + (1.0 - opacity) * bg_g
+        final_b = opacity * b + (1.0 - opacity) * bg_b
+        luminance = (0.299 * final_r + 0.587 * final_g + 0.114 * final_b) / 255
+        return "#000000" if luminance > 0.65 else "#ffffff"
+    except Exception:
+        return "#ffffff"
+
+
 @app.get("/dynamic.css")
 def dynamic_css():
     from fastapi.responses import Response
     with closing(get_db()) as conn:
         categories = get_categories(conn)
+        border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
     lines = []
     for cat in categories:
         name = cat["name"]
         color = cat["color"]
         bg = hex_to_dark_bg(color, 0.15)
-        text_color = get_contrast_text_color(color)
+        cat_color = hex_to_rgba(color, border_opacity)
+        text_color = get_contrast_text_color_blended(color, border_opacity)
         css_cls = to_css_class(name)
         lines.append(f"""
-.badge-{css_cls} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
-.cat-btn-{css_cls} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
-.cat-btn-{css_cls}.active {{ background: {color}; color: {text_color}; border-color: {color}; }}
+.badge-{css_cls} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
+.cat-btn-{css_cls} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
+.cat-btn-{css_cls}.active,
+.cat-btn-{css_cls}.active:hover {{ background: {cat_color}; color: {text_color} !important; border-color: {cat_color}; }}
 """)
         if css_cls.lower() != css_cls:
             lines.append(f"""
-.badge-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
-.cat-btn-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {hex_to_dark_bg(color, 0.5)}; }}
-.cat-btn-{css_cls.lower()}.active {{ background: {color}; color: {text_color}; border-color: {color}; }}
+.badge-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
+.cat-btn-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
+.cat-btn-{css_cls.lower()}.active,
+.cat-btn-{css_cls.lower()}.active:hover {{ background: {cat_color}; color: {text_color} !important; border-color: {cat_color}; }}
 """)
     return Response(content="\n".join(lines), media_type="text/css")
 
