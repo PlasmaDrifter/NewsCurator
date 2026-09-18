@@ -6,6 +6,7 @@ import sqlite3
 import time
 import threading
 import hashlib
+import json
 from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
@@ -178,6 +179,7 @@ PRESET_FAVICONS = [
     {"name": "globe", "title": "World Globe", "path": "/static/favicons/globe.svg"},
     {"name": "bookmark", "title": "Bookmark", "path": "/static/favicons/bookmark.svg"},
     {"name": "lightning", "title": "Lightning", "path": "/static/favicons/lightning.svg"},
+    {"name": "linux-tux", "title": "Linux Tux", "path": "/static/favicons/linux-tux.svg"},
 ]
 
 
@@ -251,6 +253,27 @@ def get_custom_favicons(conn):
         return []
 
 
+def get_custom_themes(conn):
+    try:
+        rows = conn.execute("SELECT * FROM custom_themes ORDER BY id DESC").fetchall()
+        themes = []
+        for r in rows:
+            try:
+                colors = json.loads(r["colors_json"])
+            except Exception:
+                colors = dict(THEME_MAP["default"]["colors"])
+            themes.append({
+                "id": f"custom_{r['id']}",
+                "db_id": r["id"],
+                "name": r["name"],
+                "colors": colors,
+                "created_at": r["created_at"],
+            })
+        return themes
+    except Exception:
+        return []
+
+
 def get_setting(conn, key, default="0"):
     try:
         row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
@@ -265,6 +288,180 @@ def set_setting(conn, key, value):
         conn.commit()
     except Exception as e:
         print(f"Error setting {key}: {e}")
+
+
+THEME_PRESETS = [
+    {
+        "id": "default",
+        "name": "Default Dark",
+        "description": "Charcoal background, slate cards & electric blue",
+        "colors": {
+            "bg": "#14161b",
+            "bg_elevated": "#1c1f26",
+            "bg_card": "#21242c",
+            "border": "#2f333d",
+            "text": "#e6e6e6",
+            "text_dim": "#9aa0ab",
+            "accent": "#5b8cff",
+        },
+    },
+    {
+        "id": "midnight",
+        "name": "Midnight OLED",
+        "description": "True deep black for OLED displays with sky blue",
+        "colors": {
+            "bg": "#000000",
+            "bg_elevated": "#0a0a0c",
+            "bg_card": "#121214",
+            "border": "#242428",
+            "text": "#f2f2f2",
+            "text_dim": "#8c8c96",
+            "accent": "#38bdf8",
+        },
+    },
+    {
+        "id": "nord",
+        "name": "Nord Frost",
+        "description": "Arctic blue-grey slate & cool frost cyan",
+        "colors": {
+            "bg": "#242933",
+            "bg_elevated": "#2e3440",
+            "bg_card": "#3b4252",
+            "border": "#4c566a",
+            "text": "#eceff4",
+            "text_dim": "#d8dee9",
+            "accent": "#88c0d0",
+        },
+    },
+    {
+        "id": "dracula",
+        "name": "Dracula",
+        "description": "Gothic midnight purple & orchid lilac",
+        "colors": {
+            "bg": "#1e1f29",
+            "bg_elevated": "#21222c",
+            "bg_card": "#282a36",
+            "border": "#44475a",
+            "text": "#f8f8f2",
+            "text_dim": "#6272a4",
+            "accent": "#bd93f9",
+        },
+    },
+    {
+        "id": "solarized",
+        "name": "Solarized Dark",
+        "description": "Teal and deep cyan oceanic night",
+        "colors": {
+            "bg": "#00212b",
+            "bg_elevated": "#002b36",
+            "bg_card": "#073642",
+            "border": "#586e75",
+            "text": "#93a1a1",
+            "text_dim": "#657b83",
+            "accent": "#268bd2",
+        },
+    },
+    {
+        "id": "emerald",
+        "name": "Emerald Forest",
+        "description": "Rich deep moss, pine green & vibrant emerald",
+        "colors": {
+            "bg": "#0a1510",
+            "bg_elevated": "#0e1f18",
+            "bg_card": "#132a21",
+            "border": "#21493a",
+            "text": "#e3f4ec",
+            "text_dim": "#8cb8a3",
+            "accent": "#10b981",
+        },
+    },
+    {
+        "id": "cyberpunk",
+        "name": "Cyberpunk Neon",
+        "description": "Deep synthwave void with hot neon magenta",
+        "colors": {
+            "bg": "#0b0914",
+            "bg_elevated": "#120e24",
+            "bg_card": "#1b1536",
+            "border": "#352968",
+            "text": "#f5efff",
+            "text_dim": "#a49ec2",
+            "accent": "#f72585",
+        },
+    },
+    {
+        "id": "espresso",
+        "name": "Warm Espresso",
+        "description": "Dark roasted coffee, warm cocoa & amber honey",
+        "colors": {
+            "bg": "#161311",
+            "bg_elevated": "#1f1b18",
+            "bg_card": "#2b2521",
+            "border": "#473d36",
+            "text": "#f5f0eb",
+            "text_dim": "#ab9e94",
+            "accent": "#d97706",
+        },
+    },
+]
+
+THEME_MAP = {p["id"]: p for p in THEME_PRESETS}
+
+
+def get_theme_version():
+    with closing(get_db()) as conn:
+        return get_setting(conn, "theme_version", "1")
+
+
+def get_active_theme_config(conn):
+    active_theme = get_setting(conn, "active_theme", "default")
+    custom_json = get_setting(conn, "theme_custom_colors", "")
+    colors = dict(THEME_MAP["default"]["colors"])
+
+    if active_theme in THEME_MAP:
+        colors = dict(THEME_MAP[active_theme]["colors"])
+        theme_name = THEME_MAP[active_theme]["name"]
+    elif active_theme.startswith("custom_"):
+        try:
+            db_id = int(active_theme.removeprefix("custom_"))
+            row = conn.execute("SELECT name, colors_json FROM custom_themes WHERE id = ?", (db_id,)).fetchone()
+            if row:
+                theme_name = row["name"]
+                user_colors = json.loads(row["colors_json"])
+                for k in ["bg", "bg_elevated", "bg_card", "border", "text", "text_dim", "accent"]:
+                    if k in user_colors and user_colors[k]:
+                        colors[k] = user_colors[k]
+            else:
+                active_theme = "default"
+                theme_name = THEME_MAP["default"]["name"]
+        except Exception:
+            active_theme = "default"
+            theme_name = THEME_MAP["default"]["name"]
+    elif active_theme == "custom":
+        theme_name = "Custom Theme"
+        if custom_json:
+            try:
+                user_colors = json.loads(custom_json)
+                if isinstance(user_colors, dict):
+                    for k in ["bg", "bg_elevated", "bg_card", "border", "text", "text_dim", "accent"]:
+                        if k in user_colors and user_colors[k]:
+                            colors[k] = user_colors[k]
+            except Exception:
+                pass
+    else:
+        active_theme = "default"
+        theme_name = THEME_MAP["default"]["name"]
+
+    return {
+        "active_theme": active_theme,
+        "theme_name": theme_name,
+        "colors": colors,
+    }
+
+
+templates.env.globals["get_theme_version"] = get_theme_version
+templates.env.globals["THEME_PRESETS"] = THEME_PRESETS
+
 
 
 def hex_to_dark_bg(hex_color, alpha=0.15):
@@ -320,6 +517,14 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 path TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS custom_themes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                colors_json TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )
         """)
@@ -847,6 +1052,11 @@ def feeds_page(request: Request):
         anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
         enable_unread_filter = get_setting(conn, "enable_unread_filter", "1") == "1"
         unread_icon_only = get_setting(conn, "unread_icon_only", "0") == "1"
+        theme_cfg = get_active_theme_config(conn)
+        active_theme = theme_cfg["active_theme"]
+        active_theme_name = theme_cfg["theme_name"]
+        theme_colors = theme_cfg["colors"]
+        custom_themes = get_custom_themes(conn)
     return templates.TemplateResponse(request, "feeds.html", {
         "request": request,
         "feeds": feeds,
@@ -867,6 +1077,11 @@ def feeds_page(request: Request):
         "anim_cascade": anim_cascade,
         "enable_unread_filter": enable_unread_filter,
         "unread_icon_only": unread_icon_only,
+        "active_theme": active_theme,
+        "active_theme_name": active_theme_name,
+        "theme_colors": theme_colors,
+        "theme_presets": THEME_PRESETS,
+        "custom_themes": custom_themes,
     })
 
 
@@ -1022,6 +1237,111 @@ async def update_unread_icon_only(request: Request):
     return RedirectResponse("/feeds", status_code=303)
 
 
+@app.post("/settings/update-theme")
+async def update_theme(request: Request):
+    form = await request.form()
+    theme_name = form.get("theme_name", "default").strip()
+    custom_name = form.get("theme_custom_name", "").strip()
+    with closing(get_db()) as conn, conn:
+        custom_colors = {
+            "bg": form.get("theme_bg", "#14161b").strip(),
+            "bg_elevated": form.get("theme_bg_elevated", "#1c1f26").strip(),
+            "bg_card": form.get("theme_bg_card", "#21242c").strip(),
+            "border": form.get("theme_border", "#2f333d").strip(),
+            "text": form.get("theme_text", "#e6e6e6").strip(),
+            "text_dim": form.get("theme_text_dim", "#9aa0ab").strip(),
+            "accent": form.get("theme_accent", "#5b8cff").strip(),
+        }
+        for k, val in custom_colors.items():
+            if not val.startswith("#") or len(val) not in (4, 7):
+                custom_colors[k] = THEME_MAP["default"]["colors"][k]
+
+        if custom_name:
+            colors_json = json.dumps(custom_colors)
+            now = datetime.now(timezone.utc).isoformat()
+            existing = conn.execute("SELECT id FROM custom_themes WHERE name = ?", (custom_name,)).fetchone()
+            if existing:
+                conn.execute("UPDATE custom_themes SET colors_json = ?, created_at = ? WHERE id = ?", (colors_json, now, existing["id"]))
+                theme_id = f"custom_{existing['id']}"
+            else:
+                cursor = conn.execute("INSERT INTO custom_themes (name, colors_json, created_at) VALUES (?, ?, ?)", (custom_name, colors_json, now))
+                theme_id = f"custom_{cursor.lastrowid}"
+            set_setting(conn, "active_theme", theme_id)
+            set_setting(conn, "theme_custom_colors", colors_json)
+        elif theme_name in THEME_MAP:
+            set_setting(conn, "active_theme", theme_name)
+        elif theme_name.startswith("custom_"):
+            set_setting(conn, "active_theme", theme_name)
+        elif theme_name == "custom":
+            set_setting(conn, "active_theme", "custom")
+            set_setting(conn, "theme_custom_colors", json.dumps(custom_colors))
+        else:
+            set_setting(conn, "active_theme", "default")
+
+        cur_v = int(get_setting(conn, "theme_version", "1"))
+        new_v = str(cur_v + 1)
+        set_setting(conn, "theme_version", new_v)
+
+        if "application/json" in request.headers.get("accept", ""):
+            resp_theme_id = theme_id if custom_name else (theme_name if (theme_name in THEME_MAP or theme_name.startswith("custom_") or theme_name == "custom") else "default")
+            if custom_name:
+                resp_theme_name = custom_name
+                resp_colors = custom_colors
+                resp_db_id = int(resp_theme_id.replace("custom_", ""))
+            elif resp_theme_id.startswith("custom_"):
+                db_id_val = int(resp_theme_id.replace("custom_", ""))
+                row = conn.execute("SELECT name, colors_json FROM custom_themes WHERE id = ?", (db_id_val,)).fetchone()
+                resp_theme_name = row["name"] if row else resp_theme_id
+                resp_colors = json.loads(row["colors_json"]) if (row and row["colors_json"]) else custom_colors
+                resp_db_id = db_id_val
+            elif resp_theme_id in THEME_MAP:
+                resp_theme_name = THEME_MAP[resp_theme_id]["name"]
+                resp_colors = THEME_MAP[resp_theme_id]["colors"]
+                resp_db_id = None
+            else:
+                resp_theme_name = "Custom"
+                resp_colors = custom_colors
+                resp_db_id = None
+
+            return JSONResponse({
+                "success": True,
+                "theme_id": resp_theme_id,
+                "theme_name": resp_theme_name,
+                "db_id": resp_db_id,
+                "colors": resp_colors,
+                "theme_version": new_v,
+            })
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/delete-theme/{theme_db_id}")
+def delete_theme(theme_db_id: int):
+    with closing(get_db()) as conn, conn:
+        active_theme = get_setting(conn, "active_theme", "default")
+        conn.execute("DELETE FROM custom_themes WHERE id = ?", (theme_db_id,))
+        was_active = (active_theme == f"custom_{theme_db_id}")
+        if was_active:
+            set_setting(conn, "active_theme", "default")
+            cur_v = int(get_setting(conn, "theme_version", "1"))
+            set_setting(conn, "theme_version", str(cur_v + 1))
+        theme_ver = get_setting(conn, "theme_version", "1")
+    return JSONResponse({
+        "success": True,
+        "was_active": was_active,
+        "theme_version": theme_ver,
+    })
+
+
+@app.post("/settings/reset-theme")
+def reset_theme():
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "active_theme", "default")
+        set_setting(conn, "theme_custom_colors", "")
+        cur_v = int(get_setting(conn, "theme_version", "1"))
+        set_setting(conn, "theme_version", str(cur_v + 1))
+    return RedirectResponse("/feeds", status_code=303)
+
+
 @app.post("/articles/mark-all-read")
 async def mark_all_read(request: Request):
     form = await request.form()
@@ -1089,7 +1409,20 @@ def dynamic_css():
     with closing(get_db()) as conn:
         categories = get_categories(conn)
         border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
+        theme_cfg = get_active_theme_config(conn)
+        colors = theme_cfg["colors"]
     lines = []
+    lines.append(f"""
+:root {{
+  --bg: {colors.get('bg', '#14161b')};
+  --bg-elevated: {colors.get('bg_elevated', '#1c1f26')};
+  --bg-card: {colors.get('bg_card', '#21242c')};
+  --border: {colors.get('border', '#2f333d')};
+  --text: {colors.get('text', '#e6e6e6')};
+  --text-dim: {colors.get('text_dim', '#9aa0ab')};
+  --accent: {colors.get('accent', '#5b8cff')};
+}}
+""")
     for cat in categories:
         name = cat["name"]
         color = cat["color"]
