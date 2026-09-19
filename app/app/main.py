@@ -926,10 +926,32 @@ def toggle_bookmark(article_id: int):
 
 
 @app.post("/article/{article_id}/status")
-def set_status(article_id: int, status: str = Form(...), redirect_to: str = Form("/")):
+async def set_status(request: Request, article_id: int):
+    status = "read"
+    redirect_to = "/"
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        try:
+            data = await request.json()
+            status = data.get("status", "read")
+            redirect_to = data.get("redirect_to", "/")
+        except Exception:
+            pass
+    else:
+        try:
+            form = await request.form()
+            status = form.get("status", "read")
+            redirect_to = form.get("redirect_to", "/")
+        except Exception:
+            pass
+
     with closing(get_db()) as conn, conn:
         conn.execute("UPDATE articles SET status = ? WHERE id = ?", (status, article_id))
-    return RedirectResponse(redirect_to, status_code=303)
+
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept and "application/json" not in accept and request.headers.get("sec-fetch-dest") == "document":
+        return RedirectResponse(redirect_to, status_code=303)
+    return JSONResponse({"success": True, "status": status})
 
 
 @app.post("/article/{article_id}/toggle-status")
@@ -1432,14 +1454,28 @@ def dynamic_css():
         css_cls = to_css_class(name)
         lines.append(f"""
 .badge-{css_cls} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
-.cat-btn-{css_cls} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
+.cat-btn-{css_cls} {{
+  --cat-active-bg: {cat_color};
+  --cat-active-border: {cat_color};
+  --cat-active-color: {text_color};
+  background: {bg};
+  color: {color};
+  border-color: {cat_color};
+}}
 .cat-btn-{css_cls}.active,
 .cat-btn-{css_cls}.active:hover {{ background: {cat_color}; color: {text_color} !important; border-color: {cat_color}; }}
 """)
         if css_cls.lower() != css_cls:
             lines.append(f"""
 .badge-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
-.cat-btn-{css_cls.lower()} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
+.cat-btn-{css_cls.lower()} {{
+  --cat-active-bg: {cat_color};
+  --cat-active-border: {cat_color};
+  --cat-active-color: {text_color};
+  background: {bg};
+  color: {color};
+  border-color: {cat_color};
+}}
 .cat-btn-{css_cls.lower()}.active,
 .cat-btn-{css_cls.lower()}.active:hover {{ background: {cat_color}; color: {text_color} !important; border-color: {cat_color}; }}
 """)

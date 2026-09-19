@@ -1,11 +1,61 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+.cat-buttons { position: relative !important; }
+.cat-sliding-pill {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  height: 28px;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+  opacity: 0;
+  border: 2px solid var(--pill-border, var(--text));
+  background-color: var(--pill-bg, var(--text));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1),
+              width 0.28s cubic-bezier(0.2, 0.9, 0.3, 1),
+              background-color 0.22s ease,
+              border-color 0.22s ease,
+              opacity 0.15s ease;
+  will-change: transform, width;
+}
+.cat-sliding-pill.ready { opacity: 1 !important; }
+.cat-sliding-pill.no-transition { transition: none !important; }
+.cat-buttons.has-pill .cat-btn {
+  position: relative;
+  z-index: 2;
+  transition: color 0.18s ease, opacity 0.15s ease;
+}
+.cat-buttons.has-pill .cat-btn.active {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--cat-active-color, var(--bg)) !important;
+}
+.cat-buttons.has-pill .cat-btn.active:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--cat-active-color, var(--bg)) !important;
+  transform: none;
+  filter: none;
+}
+</style>
+
 <div class="controls">
-  <div class="cat-buttons">
-    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}" class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}">All</a>
+  <div class="cat-buttons" style="position: relative;">
+    <div class="cat-sliding-pill" id="cat-sliding-pill" aria-hidden="true" style="position: absolute; top: 0; left: 0; pointer-events: none; height: 28px; border-radius: 6px; z-index: 1; opacity: 0; box-sizing: border-box;"></div>
+    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}"
+       class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}"
+       data-cat="all"
+       onclick="selectCategory('all', this, event)">All</a>
     {% for c in categories %}
-    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}" class="cat-btn cat-btn-{{ c.name|css_class }} {% if current_category == c.name %}active{% endif %}">{{ c.name }}</a>
+    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}"
+       class="cat-btn cat-btn-{{ c.name|css_class }} {% if current_category == c.name %}active{% endif %}"
+       data-cat="{{ c.name }}"
+       onclick="selectCategory('{{ c.name|e }}', this, event)">{{ c.name }}</a>
     {% endfor %}
   </div>
 
@@ -77,7 +127,7 @@
 let currentOffset = {{ initial_count }};
 let isLoading = false;
 let hasMoreArticles = {{ has_more | tojson }};
-const currentCategory = {{ current_category | tojson }};
+let currentCategory = {{ current_category | tojson }};
 const currentSource = {{ current_source | tojson }};
 const searchQuery = {{ search_query | tojson }};
 const isBookmarkedView = {{ is_bookmarked_view | tojson }};
@@ -142,13 +192,46 @@ function markAsRead(articleId) {
   if (card) {
     card.classList.add('read');
   }
-  const formData = new FormData();
-  formData.append('status', 'read');
-  fetch(`/article/${articleId}/status`, {
-    method: 'POST',
-    body: formData
-  }).catch(err => console.error('Failed to mark article as read:', err));
+  const url = `/article/${articleId}/status`;
+  const body = new URLSearchParams({ status: 'read' });
+
+  let sent = false;
+  if (navigator.sendBeacon) {
+    try {
+      const blob = new Blob([body.toString()], { type: 'application/x-www-form-urlencoded' });
+      sent = navigator.sendBeacon(url, blob);
+    } catch (e) {
+      sent = false;
+    }
+  }
+  if (!sent) {
+    fetch(url, {
+      method: 'POST',
+      body: body,
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }).catch(err => console.error('Failed to mark article as read:', err));
+  }
 }
+
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted && isUnreadView) {
+    window.location.reload();
+  }
+  const container = document.querySelector('.cat-buttons');
+  const activeBtn = container ? container.querySelector('.cat-btn.active') : null;
+  const pill = document.getElementById('cat-sliding-pill');
+  if (activeBtn && pill) {
+    pill.classList.add('no-transition');
+    pill.style.transform = `translate3d(${activeBtn.offsetLeft}px, ${activeBtn.offsetTop}px, 0)`;
+    pill.style.width = `${activeBtn.offsetWidth}px`;
+    pill.style.height = `${activeBtn.offsetHeight}px`;
+    void pill.offsetWidth;
+    pill.classList.remove('no-transition');
+  }
+});
 
 function markAllAsRead() {
   const btn = document.querySelector('.mark-all-read-btn');
@@ -266,6 +349,47 @@ function getThreeRowTargetY(targetIndex) {
   return targetIndex * getThreeRowStep();
 }
 
+function renderArticleCard(a, idx) {
+  const article = document.createElement('article');
+  article.id = `article-card-${a.id}`;
+  article.className = `card ${a.status === 'read' ? 'read' : ''}`;
+  article.setAttribute('data-link', a.link);
+  article.setAttribute('data-id', a.id);
+  article.style.setProperty('--card-idx', idx % 24);
+  article.onclick = (e) => handleCardClick(e, article);
+  article.onauxclick = (e) => handleCardClick(e, article);
+  if (coloredBorders && a.category_color) {
+    article.style.borderColor = a.category_border_color;
+    article.style.borderWidth = `${borderSize}px`;
+  }
+
+  article.innerHTML = `
+    <button type="button" class="card-bookmark-btn ${a.is_bookmarked ? 'active' : ''}"
+      title="${a.is_bookmarked ? 'Remove bookmark' : 'Bookmark article'}"
+      onclick="toggleBookmark(event, ${a.id})" onauxclick="event.stopPropagation()">
+      <span class="bookmark-tag-icon">🔖</span>
+    </button>
+    <div class="card-meta">
+      <span class="cat-btn cat-btn-${escapeHtml(a.feed_category_css || a.feed_category)} post-category">
+        ${escapeHtml(a.feed_category_title || a.feed_category || '')}
+      </span>
+      <span class="feed-name">${escapeHtml(a.feed_name)}</span>
+      ${a.published_formatted ? `<span class="date">${escapeHtml(a.published_formatted)}</span>` : ''}
+    </div>
+    <div class="card-body">
+      <h2 class="card-title">
+        <a href="${escapeHtml(a.link)}" target="${openInNewTab ? '_blank' : '_self'}" rel="noopener" onclick="markAsRead(${a.id})" onauxclick="markAsRead(${a.id})">${escapeHtml(a.title)}</a>
+      </h2>
+      ${a.summary ? `<p class="card-summary">${escapeHtml(a.summary)}</p>` : ''}
+      <div class="card-footer">
+        <span class="card-domain">${escapeHtml(a.domain)}</span>
+        <span class="card-added-time">${escapeHtml(a.fetched_at_minutes)}</span>
+      </div>
+    </div>
+  `;
+  return article;
+}
+
 async function loadMoreArticles() {
   if (isLoading || !hasMoreArticles) return;
   isLoading = true;
@@ -288,43 +412,7 @@ async function loadMoreArticles() {
     if (data.articles && data.articles.length > 0) {
       const grid = document.querySelector('.card-grid');
       data.articles.forEach((a, idx) => {
-        const article = document.createElement('article');
-        article.id = `article-card-${a.id}`;
-        article.className = `card ${a.status === 'read' ? 'read' : ''}`;
-        article.setAttribute('data-link', a.link);
-        article.setAttribute('data-id', a.id);
-        article.style.setProperty('--card-idx', idx % 24);
-        article.onclick = (e) => handleCardClick(e, article);
-        article.onauxclick = (e) => handleCardClick(e, article);
-        if (coloredBorders && a.category_color) {
-          article.style.borderColor = a.category_border_color;
-          article.style.borderWidth = `${borderSize}px`;
-        }
-
-        article.innerHTML = `
-          <button type="button" class="card-bookmark-btn ${a.is_bookmarked ? 'active' : ''}"
-            title="${a.is_bookmarked ? 'Remove bookmark' : 'Bookmark article'}"
-            onclick="toggleBookmark(event, ${a.id})" onauxclick="event.stopPropagation()">
-            <span class="bookmark-tag-icon">🔖</span>
-          </button>
-          <div class="card-meta">
-            <span class="cat-btn cat-btn-${escapeHtml(a.feed_category_css || a.feed_category)} post-category">
-              ${escapeHtml(a.feed_category_title || a.feed_category || '')}
-            </span>
-            <span class="feed-name">${escapeHtml(a.feed_name)}</span>
-            ${a.published_formatted ? `<span class="date">${escapeHtml(a.published_formatted)}</span>` : ''}
-          </div>
-          <div class="card-body">
-            <h2 class="card-title">
-              <a href="${escapeHtml(a.link)}" target="${openInNewTab ? '_blank' : '_self'}" rel="noopener" onclick="markAsRead(${a.id})" onauxclick="markAsRead(${a.id})">${escapeHtml(a.title)}</a>
-            </h2>
-            ${a.summary ? `<p class="card-summary">${escapeHtml(a.summary)}</p>` : ''}
-            <div class="card-footer">
-              <span class="card-domain">${escapeHtml(a.domain)}</span>
-              <span class="card-added-time">${escapeHtml(a.fetched_at_minutes)}</span>
-            </div>
-          </div>
-        `;
+        const article = renderArticleCard(a, idx);
         grid.appendChild(article);
       });
       currentOffset = data.offset;
@@ -392,7 +480,177 @@ function handleRefreshSubmit(form) {
   }
 }
 
+function getButtonColors(btn) {
+  if (!btn) return { bg: 'var(--text)', border: 'var(--text)' };
+  const style = window.getComputedStyle(btn);
+  const bg = style.getPropertyValue('--cat-active-bg').trim() || 'var(--text)';
+  const border = style.getPropertyValue('--cat-active-border').trim() || 'var(--text)';
+  return { bg, border };
+}
+
+function setPillPosition(btn, animate = true) {
+  const pill = document.getElementById('cat-sliding-pill');
+  if (!btn || !pill) return;
+  const colors = getButtonColors(btn);
+  if (!animate) {
+    pill.classList.add('no-transition');
+  } else {
+    pill.classList.remove('no-transition');
+  }
+  pill.style.transform = `translate3d(${btn.offsetLeft}px, ${btn.offsetTop}px, 0)`;
+  pill.style.width = `${btn.offsetWidth}px`;
+  pill.style.height = `${btn.offsetHeight}px`;
+  pill.style.setProperty('--pill-bg', colors.bg);
+  pill.style.setProperty('--pill-border', colors.border);
+  if (!animate) {
+    void pill.offsetWidth;
+    pill.classList.remove('no-transition');
+  }
+}
+
+async function selectCategory(catName, btn, event) {
+  if (event) {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+  }
+
+  if (currentCategory === catName) return;
+
+  const container = document.querySelector('.cat-buttons');
+  const oldActive = container ? container.querySelector('.cat-btn.active') : null;
+  if (oldActive) oldActive.classList.remove('active');
+  btn.classList.add('active');
+  setPillPosition(btn, true);
+
+  currentCategory = catName;
+
+  // Update browser URL
+  try {
+    const url = new URL(window.location.href);
+    if (catName === 'all') {
+      url.searchParams.set('category', 'all');
+    } else {
+      url.searchParams.set('category', catName);
+    }
+    window.history.pushState({ category: catName }, '', url.toString());
+  } catch (e) {}
+
+  // Update other controls on page
+  const unreadBtn = document.querySelector('.unread-filter-btn');
+  if (unreadBtn) {
+    try {
+      const uUrl = new URL(unreadBtn.href, window.location.origin);
+      uUrl.searchParams.set('category', catName);
+      unreadBtn.href = uUrl.pathname + uUrl.search;
+    } catch (e) {}
+  }
+  const sourceSelect = document.querySelector('select[name="source"]');
+  if (sourceSelect) {
+    sourceSelect.setAttribute('onchange', `window.location='/?category=${encodeURIComponent(catName)}&q=${encodeURIComponent(searchQuery || '')}${isUnreadView ? '&unread=1' : ''}${isBookmarkedView ? '&bookmarked=1' : ''}&source='+this.value`);
+  }
+  const refreshInput = document.querySelector('input[name="redirect_to"]');
+  if (refreshInput) {
+    refreshInput.value = `/?category=${encodeURIComponent(catName)}&source=${encodeURIComponent(currentSource || 'all')}&q=${encodeURIComponent(searchQuery || '')}${isUnreadView ? '&unread=1' : ''}${isBookmarkedView ? '&bookmarked=1' : ''}`;
+  }
+
+  isLoading = true;
+  const grid = document.querySelector('.card-grid');
+  const loader = document.getElementById('infinite-scroll-loader');
+  if (loader) loader.style.display = 'flex';
+
+  try {
+    const params = new URLSearchParams({
+      category: currentCategory,
+      source: currentSource,
+      q: searchQuery,
+      bookmarked: isBookmarkedView ? 1 : 0,
+      unread: isUnreadView ? 1 : 0,
+      offset: 0,
+      limit: 60
+    });
+    const res = await fetch(`/api/articles?${params.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch articles');
+    const data = await res.json();
+
+    if (grid) {
+      grid.innerHTML = '';
+      if (data.articles && data.articles.length > 0) {
+        data.articles.forEach((a, idx) => {
+          const card = renderArticleCard(a, idx);
+          grid.appendChild(card);
+        });
+      } else {
+        grid.innerHTML = '<p class="empty-state">No articles found. Try refreshing, clearing search, or changing filters.</p>';
+      }
+    }
+
+    currentOffset = data.offset;
+    hasMoreArticles = data.has_more;
+    const sentinel = document.getElementById('infinite-scroll-sentinel');
+    if (sentinel) {
+      sentinel.style.minHeight = hasMoreArticles ? '80vh' : '0px';
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    console.error('Dynamic category switch failed, navigating normally:', err);
+    window.location.href = btn.href;
+  } finally {
+    isLoading = false;
+    if (loader) loader.style.display = 'none';
+  }
+}
+
+function initSlidingPill() {
+  const container = document.querySelector('.cat-buttons');
+  const pill = document.getElementById('cat-sliding-pill');
+  if (!container || !pill) return;
+
+  const activeBtn = container.querySelector('.cat-btn.active') || container.querySelector('.cat-btn');
+  if (!activeBtn) return;
+
+  container.classList.add('has-pill');
+
+  // Place directly on active button without transition
+  setPillPosition(activeBtn, false);
+  pill.classList.add('ready');
+
+  // Keep aligned on resize or layout changes
+  window.addEventListener('resize', function() {
+    const current = container.querySelector('.cat-btn.active');
+    if (current) setPillPosition(current, false);
+  }, { passive: true });
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => {
+      const current = container.querySelector('.cat-btn.active');
+      if (current) setPillPosition(current, false);
+    });
+    ro.observe(container);
+  }
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      const current = container.querySelector('.cat-btn.active');
+      if (current) setPillPosition(current, false);
+    });
+  }
+
+  window.addEventListener('popstate', function(e) {
+    const url = new URL(window.location.href);
+    const cat = url.searchParams.get('category') || 'all';
+    const targetBtn = container.querySelector(`[data-cat="${cat}"]`) || container.querySelector('.cat-btn-all');
+    if (targetBtn) {
+      selectCategory(cat, targetBtn);
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  initSlidingPill();
+
   const savedMode = localStorage.getItem('newscurator_view_mode') || 'grid';
   applyViewMode(savedMode);
 

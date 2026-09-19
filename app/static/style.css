@@ -217,9 +217,73 @@ h1 {
   filter: brightness(1.08);
 }
 
-.cat-btn-all          { background: #2a2d36; color: #c0c4cc; border-color: #3f4452; }
+.cat-btn-all {
+  --cat-active-bg: var(--text);
+  --cat-active-border: var(--text);
+  --cat-active-color: var(--bg);
+  background: #2a2d36;
+  color: #c0c4cc;
+  border-color: #3f4452;
+}
 .cat-btn-all.active,
 .cat-btn-all.active:hover { background: var(--text); color: var(--bg) !important; border-color: var(--text); }
+
+/* --- SMOOTH SLIDING ACTIVE PILL INDICATOR --- */
+.cat-sliding-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 28px;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+  opacity: 0;
+  border: 2px solid var(--pill-border, var(--text));
+  background-color: var(--pill-bg, var(--text));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1),
+              width 0.28s cubic-bezier(0.2, 0.9, 0.3, 1),
+              background-color 0.22s ease,
+              border-color 0.22s ease,
+              opacity 0.15s ease;
+  will-change: transform, width;
+}
+
+.cat-sliding-pill.ready {
+  opacity: 1;
+}
+
+.cat-sliding-pill.no-transition {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-sliding-pill {
+    transition: none !important;
+  }
+}
+
+/* When the sliding pill is active, let the pill provide background & border */
+.cat-buttons.has-pill .cat-btn {
+  position: relative;
+  z-index: 2;
+  transition: color 0.18s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+.cat-buttons.has-pill .cat-btn.active {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--cat-active-color, var(--bg)) !important;
+}
+
+.cat-buttons.has-pill .cat-btn.active:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--cat-active-color, var(--bg)) !important;
+  transform: none;
+  filter: none;
+}
 
 .right-controls { display: flex; gap: 8px; align-items: center; }
 .right-controls form { margin: 0; display: flex; align-items: center; }
