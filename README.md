@@ -6,6 +6,9 @@
 [![SQLite](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![Jinja2](https://img.shields.io/badge/Templates-Jinja2-B41717?logo=jinja&logoColor=white)](https://palletsprojects.com/p/jinja/)
 
+> [!NOTE]
+> **Questions, custom configs, or ideas?** Join us on Reddit at <nobr>[**r/PlasmaDrifterProjects**](https://reddit.com/r/PlasmaDrifterProjects)</nobr>!
+
 A fast, self-hosted, dark-themed **RSS news aggregator** dashboard built with **FastAPI**, **Jinja2**, and **SQLite**, running as a rootless **Podman Quadlet** container service.
 
 This repository contains the complete web application source code, container definition, systemd Quadlet configuration, and application screenshots.
@@ -198,3 +201,11 @@ The application uses SQLite with four core tables:
 ## License
 
 Created and maintained by [PlasmaDrifter](https://github.com/PlasmaDrifter). Distributed for personal and self-hosted use.
+
+---
+
+## 💬 Community & Discussions
+
+Got questions, setup ideas, or feedback?
+
+* 🌐 Join our subreddit at [**r/PlasmaDrifterProjects**](https://reddit.com/r/PlasmaDrifterProjects) to discuss updates, get support, and share configurations.
