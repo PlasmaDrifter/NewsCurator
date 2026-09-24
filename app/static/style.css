@@ -505,6 +505,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .date {
   font-size: 0.68rem;
   color: var(--text-dim);
+  margin-left: 6px;
 }
 
 .card-title {
@@ -1214,7 +1215,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .card-grid.table-view .card-meta {
   padding: 0;
   gap: 12px;
-  width: 290px;
+  width: 320px;
   flex-shrink: 0;
   align-items: center;
   flex-wrap: nowrap;
@@ -1241,6 +1242,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   white-space: nowrap;
   flex-shrink: 0;
   font-size: 0.72rem;
+  margin-left: 0;
 }
 
 .card-grid.table-view .card-body {
@@ -1565,6 +1567,18 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   color: var(--text);
 }
 
+.settings-header-github {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.github-header-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
 .settings-stats-badges {
   display: flex;
   gap: 8px;
@@ -1696,6 +1710,54 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   flex-direction: column;
   gap: 13px;
   flex: 1;
+}
+
+.btn-github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-github-link:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.btn-github-link .github-icon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.btn-github-link:hover .github-icon {
+  transform: scale(1.1);
+  color: var(--accent);
+}
+
+.btn-github-link .github-link-arrow {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  margin-left: 2px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-github-link:hover .github-link-arrow {
+  opacity: 1;
+  transform: translate(2px, -2px);
+  color: var(--accent);
 }
 
 .setting-item-row {

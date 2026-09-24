@@ -7,9 +7,14 @@ import time
 import threading
 import hashlib
 import json
+import socket
+import urllib.request
 from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Safeguard against hung/unresponsive remote feed sockets blocking background worker threads
+socket.setdefaulttimeout(20.0)
 
 import feedparser
 from fastapi import FastAPI, Form, Request, UploadFile, File
@@ -86,13 +91,13 @@ def format_date(value):
             ts = email.utils.mktime_tz(parsed)
             dt = datetime.fromtimestamp(ts, tz=ZoneInfo("America/Los_Angeles"))
             month_str = MONTH_ABBR.get(dt.month, dt.strftime("%b"))
-            return f"{dt.strftime('%H:%M')} - {month_str} {dt.day}"
+            return f"[ {month_str} {dt.day} - {dt.strftime('%H:%M')} ]"
         try:
             val_clean = value.replace("Z", "+00:00")
             dt = datetime.fromisoformat(val_clean)
             dt = dt.astimezone(ZoneInfo("America/Los_Angeles"))
             month_str = MONTH_ABBR.get(dt.month, dt.strftime("%b"))
-            return f"{dt.strftime('%H:%M')} - {month_str} {dt.day}"
+            return f"[ {month_str} {dt.day} - {dt.strftime('%H:%M')} ]"
         except Exception:
             pass
     except Exception:
@@ -164,10 +169,26 @@ def format_fetched_minutes(fetched_at_str):
         dt = datetime.fromisoformat(fetched_at_str)
         now = datetime.now(timezone.utc)
         diff = now - dt
-        minutes = diff.total_seconds() / 60.0
-        if minutes < 0:
-            minutes = 0.0
-        return f"{int(round(minutes))} m"
+        total_minutes = int(diff.total_seconds() // 60)
+        if total_minutes < 0:
+            total_minutes = 0
+
+        # Tier 1: Under 180 minutes (0 to 179m)
+        if total_minutes < 180:
+            return f"{total_minutes}m"
+
+        # Tier 2: 180 to 1439 minutes (3h 0m to 23h 59m)
+        if total_minutes < 1440:
+            hours = total_minutes // 60
+            mins = total_minutes % 60
+            return f"{hours}h {mins}m"
+
+        # Tier 3: 1440+ minutes (1d+ with days, hours, and minutes)
+        days = total_minutes // 1440
+        rem = total_minutes % 1440
+        hours = rem // 60
+        mins = rem % 60
+        return f"{days}d {hours}h {mins}m"
     except Exception:
         return ""
 
@@ -669,13 +690,19 @@ def clean_summary(entry, max_len=500):
 def fetch_feed(conn, feed_row):
     err_msg = None
     try:
-        parsed = feedparser.parse(feed_row["url"])
-        if getattr(parsed, "status", 200) >= 400:
-            err_msg = f"HTTP {parsed.status}"
-        elif getattr(parsed, "bozo", 0) and not getattr(parsed, "entries", None):
+        req = urllib.request.Request(
+            feed_row["url"],
+            headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 NewsCurator/0.7"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw_content = resp.read()
+        parsed = feedparser.parse(raw_content)
+        if getattr(parsed, "bozo", 0) and not getattr(parsed, "entries", None):
             err_msg = str(getattr(parsed, "bozo_exception", "Parse error"))[:120]
     except Exception as e:
-        print(f"Error fetching {feed_row['name']}: {e}")
+        print(f"Error fetching {feed_row['name']}: {e}", flush=True)
         err_msg = str(e)[:120]
         conn.execute(
             "UPDATE feeds SET last_fetched = ?, last_error = ? WHERE id = ?",
@@ -752,17 +779,18 @@ def refresh_all_feeds():
         for feed in feeds:
             with conn:
                 total_new += fetch_feed(conn, feed)
-        print(f"Refresh complete: {total_new} new articles")
+        print(f"Refresh complete: {total_new} new articles", flush=True)
     return total_new
 
 
 def background_refresher():
     while True:
         try:
+            print(f"[{datetime.now(timezone.utc).isoformat()}] Starting background feed refresh...", flush=True)
             refresh_all_feeds()
             cleanup_old_articles()
         except Exception as e:
-            print(f"Background refresh error: {e}")
+            print(f"Background refresh error: {e}", flush=True)
 
         # Determine interval dynamically from settings (default 30 minutes)
         with closing(get_db()) as conn:
