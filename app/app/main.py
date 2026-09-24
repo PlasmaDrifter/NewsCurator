@@ -9,9 +9,79 @@ import hashlib
 import json
 import socket
 import urllib.request
+import collections
 from contextlib import closing
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
+
+try:
+    LOCAL_TZ = ZoneInfo(os.environ.get("APP_TIMEZONE", os.environ.get("TZ", "America/Phoenix")))
+except Exception:
+    LOCAL_TZ = timezone.utc
+
+def get_local_now_str() -> str:
+    return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
+# In-Memory Rotating Log Buffer (holds latest 1,000 log lines)
+class InMemoryLogBuffer:
+    def __init__(self, maxlen=1000):
+        self.buffer = collections.deque(maxlen=maxlen)
+        self.lock = threading.Lock()
+
+    def append(self, line: str):
+        if not line:
+            return
+        with self.lock:
+            self.buffer.append(line)
+
+    def get_logs(self, limit=500, search=""):
+        with self.lock:
+            logs = list(self.buffer)
+        if search:
+            s = search.lower()
+            logs = [line for line in logs if s in line.lower()]
+        return logs[-limit:]
+
+    def clear(self):
+        with self.lock:
+            self.buffer.clear()
+
+log_buffer = InMemoryLogBuffer(maxlen=1000)
+
+class TeeStream:
+    def __init__(self, original_stream, buffer_obj):
+        self.original_stream = original_stream
+        self.buffer_obj = buffer_obj
+        self.line_buf = ""
+        self.lock = threading.Lock()
+
+    def write(self, data):
+        try:
+            self.original_stream.write(data)
+        except Exception:
+            pass
+        if not data:
+            return
+        with self.lock:
+            self.line_buf += data
+            while "\n" in self.line_buf:
+                line, self.line_buf = self.line_buf.split("\n", 1)
+                stripped = line.strip()
+                if stripped:
+                    if not stripped.startswith("["):
+                        ts = get_local_now_str()
+                        stripped = f"[{ts}] {stripped}"
+                    self.buffer_obj.append(stripped)
+
+    def flush(self):
+        try:
+            self.original_stream.flush()
+        except Exception:
+            pass
+
+sys.stdout = TeeStream(sys.stdout, log_buffer)
+sys.stderr = TeeStream(sys.stderr, log_buffer)
 
 # Safeguard against hung/unresponsive remote feed sockets blocking background worker threads
 socket.setdefaulttimeout(20.0)
@@ -701,6 +771,7 @@ def fetch_feed(conn, feed_row):
         parsed = feedparser.parse(raw_content)
         if getattr(parsed, "bozo", 0) and not getattr(parsed, "entries", None):
             err_msg = str(getattr(parsed, "bozo_exception", "Parse error"))[:120]
+            print(f"Error parsing {feed_row['name']}: {err_msg}", flush=True)
     except Exception as e:
         print(f"Error fetching {feed_row['name']}: {e}", flush=True)
         err_msg = str(e)[:120]
@@ -716,6 +787,7 @@ def fetch_feed(conn, feed_row):
     )
 
     new_count = 0
+    total_entries = len(parsed.entries) if getattr(parsed, "entries", None) else 0
     for entry in parsed.entries:
         guid = entry.get("id") or entry.get("link")
         if not guid:
@@ -750,6 +822,11 @@ def fetch_feed(conn, feed_row):
             ),
         )
         new_count += 1
+
+    if new_count > 0:
+        print(f"Fetched '{feed_row['name']}': {new_count} new articles ({total_entries} total in feed)", flush=True)
+    else:
+        print(f"Fetched '{feed_row['name']}': 0 new articles ({total_entries} checked)", flush=True)
     return new_count
 
 
@@ -768,7 +845,9 @@ def cleanup_old_articles(days=None):
         )
         deleted = cursor.rowcount
         if deleted > 0:
-            print(f"Cleaned up {deleted} articles older than {days} days")
+            print(f"Cleaned up {deleted} articles older than {days} days", flush=True)
+        else:
+            print(f"Retention check: 0 articles older than {days} days to clean up", flush=True)
     return deleted
 
 
@@ -776,17 +855,19 @@ def refresh_all_feeds():
     with closing(get_db()) as conn:
         feeds = conn.execute("SELECT * FROM feeds WHERE enabled = 1").fetchall()
         total_new = 0
+        feed_count = len(feeds)
+        print(f"Refreshing {feed_count} enabled feeds...", flush=True)
         for feed in feeds:
             with conn:
                 total_new += fetch_feed(conn, feed)
-        print(f"Refresh complete: {total_new} new articles", flush=True)
+        print(f"Refresh complete: {feed_count} feeds checked, {total_new} new articles added", flush=True)
     return total_new
 
 
 def background_refresher():
     while True:
         try:
-            print(f"[{datetime.now(timezone.utc).isoformat()}] Starting background feed refresh...", flush=True)
+            print("Starting background feed refresh...", flush=True)
             refresh_all_feeds()
             cleanup_old_articles()
         except Exception as e:
@@ -953,6 +1034,21 @@ def toggle_bookmark(article_id: int):
     return JSONResponse({"success": False}, status_code=404)
 
 
+@app.get("/api/logs")
+def get_logs_api(limit: int = 300, q: str = ""):
+    entries = log_buffer.get_logs(limit=limit, search=q)
+    return JSONResponse({
+        "logs": entries,
+        "total": len(log_buffer.buffer)
+    })
+
+
+@app.post("/api/logs/clear")
+def clear_logs_api():
+    log_buffer.clear()
+    return JSONResponse({"success": True})
+
+
 @app.post("/article/{article_id}/status")
 async def set_status(request: Request, article_id: int):
     status = "read"
@@ -995,6 +1091,7 @@ def toggle_status(article_id: int):
 
 @app.post("/refresh")
 def manual_refresh(redirect_to: str = Form("/")):
+    print("Manual feed refresh triggered by user", flush=True)
     refresh_all_feeds()
     return RedirectResponse(redirect_to, status_code=303)
 

@@ -5,15 +5,25 @@
   <!-- Top header -->
   <div class="settings-header">
     <h1>Manage Sources &amp; Settings</h1>
-    <div class="settings-header-github">
-      <span class="github-header-label">GitHub Repository</span>
-      <a href="https://github.com/PlasmaDrifter/NewsCurator" target="_blank" rel="noopener noreferrer" class="btn-github-link" title="Open GitHub Repository">
-        <svg class="github-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+    <div class="settings-header-actions">
+      <button type="button" class="btn-logs-header" onclick="openLogsModal()" title="View System &amp; Background Logs">
+        <svg class="logs-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
         </svg>
-        <span>PlasmaDrifter/NewsCurator</span>
-        <span class="github-link-arrow">&nearr;</span>
-      </a>
+        <span>View Logs</span>
+      </button>
+
+      <div class="settings-header-github">
+        <span class="github-header-label">GitHub Repository</span>
+        <a href="https://github.com/PlasmaDrifter/NewsCurator" target="_blank" rel="noopener noreferrer" class="btn-github-link" title="Open GitHub Repository">
+          <svg class="github-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>PlasmaDrifter/NewsCurator</span>
+          <span class="github-link-arrow">&nearr;</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -463,6 +473,67 @@
 
     <!-- Hidden form for deletion -->
     <form id="category-delete-form" method="post" action="" style="display: none;"></form>
+  </div>
+</div>
+
+<!-- System Logs Modal -->
+<div id="logs-modal" class="modal-backdrop" style="display: none;" onclick="handleLogsBackdropClick(event)">
+  <div class="modal-card logs-modal-card">
+    <div class="modal-header logs-modal-header">
+      <div class="modal-title-wrap">
+        <svg class="logs-modal-title-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+        <h3 class="modal-title">System &amp; Background Logs</h3>
+        <span id="logs-status-indicator" class="logs-status-badge live">● Live</span>
+      </div>
+      <div class="logs-header-tools">
+        <div class="logs-search-wrap">
+          <input type="text" id="logs-search-input" placeholder="Filter logs (e.g. error, refresh)..." oninput="handleLogsSearch(this.value)" class="logs-search-input">
+          <button type="button" id="logs-search-clear" class="logs-search-clear-btn" style="display: none;" onclick="clearLogsSearch()">&times;</button>
+        </div>
+        <button type="button" class="btn-logs-tool" id="logs-toggle-refresh-btn" onclick="toggleLogsAutoRefresh()" title="Pause/Resume live auto-refresh">
+          <span id="logs-refresh-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+          </span>
+          <span id="logs-refresh-text">Pause</span>
+        </button>
+        <button type="button" class="btn-logs-tool" onclick="fetchLogs()" title="Refresh now">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          <span>Refresh</span>
+        </button>
+        <button type="button" class="btn-logs-tool" id="logs-copy-btn" onclick="copyLogsToClipboard()" title="Copy all visible logs">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span id="logs-copy-text">Copy</span>
+        </button>
+        <button type="button" class="btn-logs-tool btn-logs-danger" onclick="clearServerLogs()" title="Clear in-memory buffer">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Clear</span>
+        </button>
+        <button type="button" class="modal-close-btn" onclick="closeLogsModal()" title="Close">&times;</button>
+      </div>
+    </div>
+
+    <div class="modal-body logs-modal-body">
+      <div id="logs-terminal" class="logs-terminal" onscroll="handleLogsScroll(this)">
+        <div class="logs-loading-msg">Loading logs...</div>
+      </div>
+    </div>
+
+    <div class="logs-modal-footer">
+      <div class="logs-footer-info">
+        <span id="logs-count-display">0 entries</span>
+        <span class="logs-footer-sep">·</span>
+        <span class="logs-footer-hint">Auto-refreshes every 3s</span>
+      </div>
+      <div class="logs-footer-actions">
+        <button type="button" class="btn-logs-scroll-bottom" id="logs-scroll-bottom-btn" onclick="scrollLogsToBottom()" style="display: none;">
+          ↓ Scroll to bottom
+        </button>
+        <button type="button" class="btn-sm-accent" onclick="closeLogsModal()">Close</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1326,8 +1397,203 @@ function confirmResetTheme() {
   }
 }
 
+/* --- SYSTEM LOGS MODAL --- */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+let logsRefreshInterval = null;
+let logsAutoRefreshEnabled = true;
+let logsCurrentSearch = '';
+let logsUserScrolledUp = false;
+let logsRawLines = [];
+
+function openLogsModal() {
+  const modal = document.getElementById('logs-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  logsUserScrolledUp = false;
+  fetchLogs(true);
+  startLogsPolling();
+}
+
+function closeLogsModal() {
+  const modal = document.getElementById('logs-modal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  stopLogsPolling();
+}
+
+function handleLogsBackdropClick(e) {
+  if (e.target && e.target.id === 'logs-modal') {
+    closeLogsModal();
+  }
+}
+
+function startLogsPolling() {
+  stopLogsPolling();
+  if (logsAutoRefreshEnabled) {
+    logsRefreshInterval = setInterval(() => {
+      fetchLogs(false);
+    }, 3000);
+  }
+}
+
+function stopLogsPolling() {
+  if (logsRefreshInterval) {
+    clearInterval(logsRefreshInterval);
+    logsRefreshInterval = null;
+  }
+}
+
+function toggleLogsAutoRefresh() {
+  logsAutoRefreshEnabled = !logsAutoRefreshEnabled;
+  const indicator = document.getElementById('logs-status-indicator');
+  const icon = document.getElementById('logs-refresh-icon');
+  const text = document.getElementById('logs-refresh-text');
+
+  if (logsAutoRefreshEnabled) {
+    if (indicator) {
+      indicator.textContent = '● Live';
+      indicator.className = 'logs-status-badge live';
+    }
+    if (icon) icon.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+    if (text) text.textContent = 'Pause';
+    startLogsPolling();
+  } else {
+    if (indicator) {
+      indicator.textContent = '■ Paused';
+      indicator.className = 'logs-status-badge paused';
+    }
+    if (icon) icon.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+    if (text) text.textContent = 'Resume';
+    stopLogsPolling();
+  }
+}
+
+function handleLogsSearch(query) {
+  logsCurrentSearch = query.trim();
+  const clearBtn = document.getElementById('logs-search-clear');
+  if (clearBtn) clearBtn.style.display = logsCurrentSearch ? 'block' : 'none';
+  fetchLogs(false);
+}
+
+function clearLogsSearch() {
+  const input = document.getElementById('logs-search-input');
+  if (input) input.value = '';
+  handleLogsSearch('');
+}
+
+function handleLogsScroll(el) {
+  const threshold = 40;
+  const atBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) <= threshold;
+  logsUserScrolledUp = !atBottom;
+  const scrollBtn = document.getElementById('logs-scroll-bottom-btn');
+  if (scrollBtn) {
+    scrollBtn.style.display = logsUserScrolledUp ? 'inline-flex' : 'none';
+  }
+}
+
+function scrollLogsToBottom() {
+  const terminal = document.getElementById('logs-terminal');
+  if (terminal) {
+    terminal.scrollTop = terminal.scrollHeight;
+    logsUserScrolledUp = false;
+    const scrollBtn = document.getElementById('logs-scroll-bottom-btn');
+    if (scrollBtn) scrollBtn.style.display = 'none';
+  }
+}
+
+async function fetchLogs(forceScrollToBottom = false) {
+  const terminal = document.getElementById('logs-terminal');
+  const countDisplay = document.getElementById('logs-count-display');
+  if (!terminal) return;
+
+  try {
+    const params = new URLSearchParams({ limit: '500' });
+    if (logsCurrentSearch) params.set('q', logsCurrentSearch);
+
+    const res = await fetch(`/api/logs?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    logsRawLines = data.logs || [];
+
+    if (countDisplay) {
+      countDisplay.textContent = `${logsRawLines.length} entries` + (data.total ? ` (${data.total} total)` : '');
+    }
+
+    if (logsRawLines.length === 0) {
+      terminal.innerHTML = `<div class="logs-empty-msg">${logsCurrentSearch ? 'No logs match "' + escapeHtml(logsCurrentSearch) + '"' : 'No logs recorded yet.'}</div>`;
+      return;
+    }
+
+    const wasNearBottom = (terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight) <= 40;
+
+    const html = logsRawLines.map(line => {
+      let cls = 'log-line';
+      const upper = line.toUpperCase();
+      if (upper.includes('ERROR') || upper.includes('EXCEPTION') || upper.includes('FAILED')) {
+        cls += ' log-error';
+      } else if (upper.includes('REFRESH COMPLETE') || upper.includes('CLEANED UP') || (upper.includes('FETCHED ') && !upper.includes(': 0 NEW ARTICLES'))) {
+        cls += ' log-success';
+      } else if (upper.includes('STARTING BACKGROUND FEED REFRESH') || upper.includes('MANUAL FEED REFRESH') || upper.includes('REFRESHING ')) {
+        cls += ' log-highlight';
+      }
+      return `<div class="${cls}">${escapeHtml(line)}</div>`;
+    }).join('');
+
+    terminal.innerHTML = html;
+
+    if (forceScrollToBottom || (!logsUserScrolledUp && wasNearBottom)) {
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+  } catch (err) {
+    console.error('Failed to load logs:', err);
+    if (terminal && logsRawLines.length === 0) {
+      terminal.innerHTML = `<div class="logs-error-msg">Failed to load logs: ${escapeHtml(err.message || String(err))}</div>`;
+    }
+  }
+}
+
+function copyLogsToClipboard() {
+  if (!logsRawLines || logsRawLines.length === 0) return;
+  const text = logsRawLines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const copyText = document.getElementById('logs-copy-text');
+    if (copyText) {
+      copyText.textContent = 'Copied!';
+      setTimeout(() => { copyText.textContent = 'Copy'; }, 1800);
+    }
+  }).catch(() => {
+    alert('Could not copy to clipboard.');
+  });
+}
+
+async function clearServerLogs() {
+  if (!confirm('Clear all in-memory logs?')) return;
+  try {
+    await fetch('/api/logs/clear', { method: 'POST' });
+    fetchLogs(true);
+  } catch (err) {
+    alert('Failed to clear logs.');
+  }
+}
+
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
+    const logsModal = document.getElementById('logs-modal');
+    if (logsModal && logsModal.style.display !== 'none') {
+      closeLogsModal();
+      return;
+    }
     const themeModal = document.getElementById('theme-modal');
     if (themeModal && themeModal.style.display !== 'none') {
       closeThemeModal();
