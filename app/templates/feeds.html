@@ -209,6 +209,45 @@
           </form>
         </div>
 
+        <!-- GitHub Navigation Button -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">Main Page GitHub Button</div>
+            <div class="setting-item-desc">Show GitHub icon next to Settings on the main news feed</div>
+          </div>
+          <form method="post" action="/settings/update-github-btn" class="setting-item-controls">
+            <label class="toggle-switch" title="Toggle GitHub icon on main page topbar">
+              <input type="checkbox" name="show_github_btn" {% if show_github_btn %}checked{% endif %} onchange="this.form.submit()">
+              <span class="toggle-slider"></span>
+            </label>
+          </form>
+        </div>
+
+        <!-- Check for Updates -->
+        <div class="setting-item-row">
+          <div class="setting-item-info">
+            <div class="setting-item-title">
+              Check for Updates
+              {% if update_available %}
+              <span class="header-count-badge" style="background: rgba(249, 115, 22, 0.2); color: #f97316; border-color: rgba(249, 115, 22, 0.4);">New: {{ latest_version }}</span>
+              {% endif %}
+            </div>
+            <div class="setting-item-desc">
+              {% if check_for_updates %}
+                Automatically check GitHub releases (Current: {{ app_version|default('v0.7.8') }})
+              {% else %}
+                Update checks disabled (Current: {{ app_version|default('v0.7.8') }})
+              {% endif %}
+            </div>
+          </div>
+          <form method="post" action="/settings/update-check-updates" class="setting-item-controls">
+            <label class="toggle-switch" title="Toggle checking for GitHub updates">
+              <input type="checkbox" name="check_for_updates" {% if check_for_updates %}checked{% endif %} onchange="this.form.submit()">
+              <span class="toggle-slider"></span>
+            </label>
+          </form>
+        </div>
+
         <!-- Database & Library Stats -->
         <div class="setting-item-row">
           <div class="setting-item-info">

@@ -23,6 +23,99 @@ except Exception:
 def get_local_now_str() -> str:
     return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
+APP_VERSION = "v0.7.8"
+GITHUB_REPO = "PlasmaDrifter/NewsCurator"
+
+UPDATE_CACHE = {
+    "last_checked": 0,
+    "latest_version": APP_VERSION,
+    "release_url": f"https://github.com/{GITHUB_REPO}/releases",
+    "has_update": False,
+    "lock": threading.Lock(),
+}
+
+def parse_version_tuple(v_str: str):
+    if not v_str:
+        return (0, 0, 0)
+    cleaned = re.sub(r'^[vV]', '', str(v_str).strip())
+    parts = []
+    for p in re.split(r'[-.+_]', cleaned):
+        if p.isdigit():
+            parts.append(int(p))
+        else:
+            m = re.match(r'(\d+)', p)
+            if m:
+                parts.append(int(m.group(1)))
+    return tuple(parts)
+
+def is_newer_version(latest: str, current: str) -> bool:
+    try:
+        return parse_version_tuple(latest) > parse_version_tuple(current)
+    except Exception:
+        return False
+
+def check_github_update(force=False, enabled=True):
+    if not enabled:
+        return {
+            "has_update": False,
+            "latest_version": APP_VERSION,
+            "release_url": f"https://github.com/{GITHUB_REPO}/releases",
+            "current_version": APP_VERSION,
+            "check_enabled": False,
+        }
+
+    now = time.time()
+    # Cache for 1 hour (3600 seconds) unless forced
+    with UPDATE_CACHE["lock"]:
+        if not force and (now - UPDATE_CACHE["last_checked"] < 3600) and UPDATE_CACHE["last_checked"] > 0:
+            return {
+                "has_update": UPDATE_CACHE["has_update"],
+                "latest_version": UPDATE_CACHE["latest_version"],
+                "release_url": UPDATE_CACHE["release_url"],
+                "current_version": APP_VERSION,
+                "check_enabled": True,
+            }
+
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": f"NewsCurator-UpdateChecker/{APP_VERSION}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            tag = data.get("tag_name", "").strip()
+            html_url = data.get("html_url") or f"https://github.com/{GITHUB_REPO}/releases"
+            has_update = bool(tag and is_newer_version(tag, APP_VERSION))
+
+            with UPDATE_CACHE["lock"]:
+                UPDATE_CACHE["last_checked"] = now
+                UPDATE_CACHE["latest_version"] = tag or APP_VERSION
+                UPDATE_CACHE["release_url"] = html_url
+                UPDATE_CACHE["has_update"] = has_update
+
+            return {
+                "has_update": has_update,
+                "latest_version": tag or APP_VERSION,
+                "release_url": html_url,
+                "current_version": APP_VERSION,
+                "check_enabled": True,
+            }
+    except Exception:
+        with UPDATE_CACHE["lock"]:
+            # On error, wait 10 min before next attempt to avoid spamming
+            UPDATE_CACHE["last_checked"] = now - 3000
+            return {
+                "has_update": UPDATE_CACHE["has_update"],
+                "latest_version": UPDATE_CACHE["latest_version"],
+                "release_url": UPDATE_CACHE["release_url"],
+                "current_version": APP_VERSION,
+                "check_enabled": True,
+            }
+
 # In-Memory Rotating Log Buffer (holds latest 1,000 log lines)
 class InMemoryLogBuffer:
     def __init__(self, maxlen=1000):
@@ -870,6 +963,13 @@ def background_refresher():
             print("Starting background feed refresh...", flush=True)
             refresh_all_feeds()
             cleanup_old_articles()
+            try:
+                with closing(get_db()) as conn:
+                    check_enabled = get_setting(conn, "check_for_updates", "1") == "1"
+                if check_enabled:
+                    check_github_update(force=False, enabled=True)
+            except Exception:
+                pass
         except Exception as e:
             print(f"Background refresh error: {e}", flush=True)
 
@@ -963,6 +1063,9 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = int(get_setting(conn, "step_scroll_rows", "3"))
         anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
+        show_github_btn = get_setting(conn, "show_github_btn", "1") == "1"
+        check_for_updates = get_setting(conn, "check_for_updates", "1") == "1"
+        update_info = check_github_update(force=False, enabled=check_for_updates)
 
     return templates.TemplateResponse(request, "index.html", {
         "request": request,
@@ -985,6 +1088,12 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "open_in_new_tab": open_in_new_tab,
         "step_scroll_rows": step_scroll_rows,
         "anim_cascade": anim_cascade,
+        "show_github_btn": show_github_btn,
+        "check_for_updates": check_for_updates,
+        "app_version": APP_VERSION,
+        "update_available": update_info.get("has_update", False),
+        "latest_version": update_info.get("latest_version", APP_VERSION),
+        "update_release_url": update_info.get("release_url", f"https://github.com/{GITHUB_REPO}/releases"),
     })
 
 
@@ -1047,6 +1156,14 @@ def get_logs_api(limit: int = 300, q: str = ""):
 def clear_logs_api():
     log_buffer.clear()
     return JSONResponse({"success": True})
+
+
+@app.get("/api/check-update")
+def check_update_api(force: int = 0):
+    with closing(get_db()) as conn:
+        check_enabled = get_setting(conn, "check_for_updates", "1") == "1"
+    info = check_github_update(force=bool(force), enabled=check_enabled)
+    return JSONResponse(info)
 
 
 @app.post("/article/{article_id}/status")
@@ -1199,6 +1316,9 @@ def feeds_page(request: Request):
         anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
         enable_unread_filter = get_setting(conn, "enable_unread_filter", "1") == "1"
         unread_icon_only = get_setting(conn, "unread_icon_only", "0") == "1"
+        show_github_btn = get_setting(conn, "show_github_btn", "1") == "1"
+        check_for_updates = get_setting(conn, "check_for_updates", "1") == "1"
+        update_info = check_github_update(force=False, enabled=check_for_updates)
         theme_cfg = get_active_theme_config(conn)
         active_theme = theme_cfg["active_theme"]
         active_theme_name = theme_cfg["theme_name"]
@@ -1224,6 +1344,12 @@ def feeds_page(request: Request):
         "anim_cascade": anim_cascade,
         "enable_unread_filter": enable_unread_filter,
         "unread_icon_only": unread_icon_only,
+        "show_github_btn": show_github_btn,
+        "check_for_updates": check_for_updates,
+        "app_version": APP_VERSION,
+        "update_available": update_info.get("has_update", False),
+        "latest_version": update_info.get("latest_version", APP_VERSION),
+        "update_release_url": update_info.get("release_url", f"https://github.com/{GITHUB_REPO}/releases"),
         "active_theme": active_theme,
         "active_theme_name": active_theme_name,
         "theme_colors": theme_colors,
@@ -1381,6 +1507,26 @@ async def update_unread_icon_only(request: Request):
     unread_icon_only = "1" if "unread_icon_only" in form else "0"
     with closing(get_db()) as conn, conn:
         set_setting(conn, "unread_icon_only", unread_icon_only)
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-github-btn")
+async def update_github_btn(request: Request):
+    form = await request.form()
+    show_github_btn = "1" if "show_github_btn" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "show_github_btn", show_github_btn)
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-check-updates")
+async def update_check_updates(request: Request):
+    form = await request.form()
+    check_for_updates = "1" if "check_for_updates" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "check_for_updates", check_for_updates)
+    if check_for_updates == "1":
+        check_github_update(force=True, enabled=True)
     return RedirectResponse("/feeds", status_code=303)
 
 
