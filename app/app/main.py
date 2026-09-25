@@ -26,7 +26,7 @@ except Exception:
 def get_local_now_str() -> str:
     return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
-APP_VERSION = "v0.7.9"
+APP_VERSION = "v0.8.0"
 GITHUB_REPO = "PlasmaDrifter/NewsCurator"
 
 UPDATE_CACHE = {
@@ -385,6 +385,14 @@ templates.env.globals["get_favicon_version"] = get_favicon_version
 templates.env.globals["PRESET_FAVICONS"] = PRESET_FAVICONS
 
 
+DEFAULT_CATEGORIES = [
+    ("Computing", "#5b8cff"),
+    ("Linux",     "#4caf50"),
+    ("Science",   "#f07030"),
+    ("Space",     "#9b59b6"),
+]
+
+
 DEFAULT_FEEDS = [
     # General computing / tech
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index", "Computing"),
@@ -404,10 +412,6 @@ DEFAULT_FEEDS = [
     ("NASA Breaking News", "https://www.nasa.gov/news-release/feed/", "Space"),
     ("Space.com", "https://www.space.com/feeds/all", "Space"),
     ("SpaceNews", "https://spacenews.com/feed/", "Space"),
-    # Defense
-    ("Covert Shores", "http://www.hisutton.com/feed.xml", "Defense"),
-    ("Defense One", "https://www.defenseone.com/rss/all/", "Defense"),
-    ("ISW", "https://news.google.com/rss/search?q=site%3Aunderstandingwar.org&hl=en-US&gl=US&ceid=US%3Aen", "Defense"),
 ]
 
 
@@ -423,9 +427,9 @@ def get_db():
 
 def get_categories(conn):
     rows = conn.execute("""
-        SELECT c.name, c.color, c.position, COUNT(f.id) AS feed_count
+        SELECT c.name, COALESCE(c.color, '#888888') AS color, c.position, COUNT(f.id) AS feed_count
         FROM categories c
-        LEFT JOIN feeds f ON c.name = f.category
+        LEFT JOIN feeds f ON LOWER(c.name) = LOWER(f.category)
         GROUP BY c.name
         ORDER BY c.position ASC, c.rowid ASC
     """).fetchall()
@@ -779,6 +783,21 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_bookmarked ON articles(is_bookmarked)")
 
+        # Migration: abbreviate Google News to G.News
+        try:
+            conn.execute("UPDATE feeds SET name = 'G.News' WHERE name = 'Google News'")
+        except Exception:
+            pass
+
+        # Seed default feeds if database is freshly created
+        count = conn.execute("SELECT COUNT(*) c FROM feeds").fetchone()["c"]
+        if count == 0:
+            for name, url, cat in DEFAULT_FEEDS:
+                conn.execute(
+                    "INSERT OR IGNORE INTO feeds (name, url, category) VALUES (?, ?, ?)",
+                    (name, url, cat),
+                )
+
         # Seed default categories with colors if not already present (case-insensitive)
         for cat_name, cat_color in DEFAULT_CATEGORIES:
             exists = conn.execute("SELECT 1 FROM categories WHERE LOWER(name) = LOWER(?)", (cat_name,)).fetchone()
@@ -789,7 +808,7 @@ def init_db():
                 )
 
         # Migration: seed any categories already in feeds table if not present
-        for row in conn.execute("SELECT DISTINCT category FROM feeds"):
+        for row in conn.execute("SELECT DISTINCT category FROM feeds WHERE category IS NOT NULL AND category != ''"):
             exists = conn.execute("SELECT 1 FROM categories WHERE LOWER(name) = LOWER(?)", (row["category"],)).fetchone()
             if not exists:
                 conn.execute(
@@ -797,19 +816,8 @@ def init_db():
                     (row["category"], "#888888"),
                 )
 
-        # Migration: abbreviate Google News to G.News
-        try:
-            conn.execute("UPDATE feeds SET name = 'G.News' WHERE name = 'Google News'")
-        except Exception:
-            pass
-
-        count = conn.execute("SELECT COUNT(*) c FROM feeds").fetchone()["c"]
-        if count == 0:
-            for name, url, cat in DEFAULT_FEEDS:
-                conn.execute(
-                    "INSERT OR IGNORE INTO feeds (name, url, category) VALUES (?, ?, ?)",
-                    (name, url, cat),
-                )
+        # Ensure any category with NULL or empty color gets a default color
+        conn.execute("UPDATE categories SET color = '#888888' WHERE color IS NULL OR color = ''")
 
 
 def extract_image(entry):
@@ -1030,10 +1038,10 @@ def query_articles(conn, category="all", source="all", q="", bookmarked=False, u
     where_sql = " AND ".join(where_clauses)
 
     query = f"""
-        SELECT articles.*, feeds.name as feed_name, feeds.category as feed_category, categories.color as category_color
+        SELECT articles.*, feeds.name as feed_name, feeds.category as feed_category, COALESCE(categories.color, '#888888') as category_color
         FROM articles 
         JOIN feeds ON articles.feed_id = feeds.id
-        LEFT JOIN categories ON feeds.category = categories.name
+        LEFT JOIN categories ON LOWER(feeds.category) = LOWER(categories.name)
         WHERE {where_sql}
         ORDER BY articles.fetched_at DESC
         LIMIT ? OFFSET ?
@@ -1890,15 +1898,6 @@ def dynamic_css():
 .cat-btn-{css_cls.lower()}.active:hover {{ background: {cat_color}; color: {text_color} !important; border-color: {cat_color}; }}
 """)
     return Response(content="\n".join(lines), media_type="text/css")
-
-
-DEFAULT_CATEGORIES = [
-    ("Computing", "#5b8cff"),
-    ("Linux",     "#4caf50"),
-    ("Science",   "#f07030"),
-    ("Space",     "#9b59b6"),
-]
-
 
 @app.post("/categories/add")
 def add_category(name: str = Form(...), color: str = Form("#888888")):
