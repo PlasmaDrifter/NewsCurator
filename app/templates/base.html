@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}News Curator{% endblock %}</title>
 <link rel="icon" href="{{ get_active_favicon() }}?v={{ get_favicon_version() }}">
-<link rel="stylesheet" href="/static/style.css?v=101">
+<link rel="stylesheet" href="/static/style.css?v=105">
 <link rel="stylesheet" href="/dynamic.css?v={{ border_opacity|default('0.5') }}&tv={{ get_theme_version() }}">
 </head>
 <body class="{% if anim_cascade %}anim-cascade-enabled{% endif %}">
@@ -51,23 +51,21 @@
       <span id="view-toggle-icon">☰</span> <span id="view-toggle-text">Table</span>
     </button>
 
-    <a href="/feeds" class="nav-btn nav-settings-btn" title="Manage Sources & Settings">
+    <a href="/feeds" class="nav-btn nav-settings-btn" id="btn-settings" title="Manage Sources & Settings">
       <span class="settings-gear">⚙</span> <span>Settings</span>
+      <span class="nav-update-badge" id="nav-update-badge" style="{% if update_available %}display: flex;{% else %}display: none;{% endif %}" title="Update available: {{ latest_version }}">!</span>
     </a>
 
     {% if show_github_btn %}
-    <a href="{% if update_available and update_release_url %}{{ update_release_url }}{% else %}https://github.com/PlasmaDrifter/NewsCurator{% endif %}"
+    <a href="https://github.com/PlasmaDrifter/NewsCurator"
        target="_blank"
        rel="noopener"
-       class="nav-btn nav-github-btn {% if update_available %}has-update{% endif %}"
+       class="nav-btn nav-github-btn"
        id="nav-github-link"
-       title="{% if update_available %}Update available ({{ latest_version }}) - Click to view release{% else %}GitHub Repository ({{ app_version|default('v0.7.8') }}){% endif %}">
+       title="GitHub Repository ({{ app_version|default('v0.7.9') }})">
       <svg class="nav-github-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
       </svg>
-      {% if update_available %}
-      <span class="nav-update-badge" id="nav-update-badge" title="Update available: {{ latest_version }}">!</span>
-      {% endif %}
     </a>
     {% endif %}
     {% endif %}
@@ -84,6 +82,22 @@
     <polyline points="5 12 12 5 19 12"></polyline>
   </svg>
 </button>
+
+<!-- Update Progress Modal Overlay -->
+<div id="update-progress-modal" class="modal-backdrop update-modal-backdrop" style="display: none;">
+  <div class="modal-content update-modal-content">
+    <div class="update-progress-body">
+      <svg class="update-refresh-loop spin-loop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+        <path d="M16 16h5v5"/>
+      </svg>
+      <h3 id="update-progress-title">Updating Application...</h3>
+      <p id="update-progress-desc">Applying latest release and restarting server. Please wait...</p>
+    </div>
+  </div>
+</div>
 
 <script>
 function scrollToTop() {
@@ -134,31 +148,189 @@ function handleRefreshSubmit(form) {
   }
 }
 
-{% if show_github_btn and check_for_updates %}
-// Asynchronous check for new GitHub releases
-(function checkAppUpdatesAsync() {
-  const ghLink = document.getElementById('nav-github-link');
-  if (!ghLink) return;
-  fetch('/api/check-update')
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.has_update) {
-        ghLink.classList.add('has-update');
-        if (data.release_url) ghLink.href = data.release_url;
-        ghLink.title = `Update available (${data.latest_version}) - Click to view release`;
-        if (!document.getElementById('nav-update-badge')) {
-          const badge = document.createElement('span');
-          badge.id = 'nav-update-badge';
-          badge.className = 'nav-update-badge';
-          badge.textContent = '!';
-          badge.title = `Update available: ${data.latest_version}`;
-          ghLink.appendChild(badge);
+// Self-Updater Client Integration
+let appUpdateData = null;
+
+async function checkForAppUpdates() {
+  try {
+    const res = await fetch("/api/check-update");
+    if (!res.ok) return;
+    const data = await res.json();
+    renderUpdateUI(data);
+  } catch (err) {
+    console.error("Failed to check for updates:", err);
+  }
+}
+
+function renderUpdateUI(data) {
+  if (data) appUpdateData = data;
+  const navBadge = document.getElementById("nav-update-badge");
+  const banner = document.getElementById("settings-update-banner");
+  const bannerVer = document.getElementById("update-banner-version");
+  const bannerLink = document.getElementById("update-banner-link");
+  const bannerCodeLink = document.getElementById("update-banner-code-link");
+  const btnSettings = document.getElementById("btn-settings");
+  const ghLink = document.getElementById("nav-github-link");
+
+  if (data && data.has_update) {
+    const cleanVer = data.latest_version.startsWith("v") ? data.latest_version : `v${data.latest_version}`;
+    const dismissedVer = localStorage.getItem("app_dismissed_update_version");
+    const isDismissed = Boolean(dismissedVer && (dismissedVer === data.latest_version || dismissedVer === cleanVer));
+
+    if (btnSettings) {
+      btnSettings.title = isDismissed ? "Manage Sources & Settings" : `Manage Sources & Settings (Update ${data.latest_version} available)`;
+    }
+    if (navBadge) {
+      navBadge.style.display = isDismissed ? "none" : "flex";
+      navBadge.title = `Update available: ${data.latest_version}`;
+    }
+    if (ghLink) {
+      if (data.release_url) ghLink.href = data.release_url;
+      ghLink.title = `Update available (${data.latest_version}) - Click to view release`;
+    }
+    if (banner) {
+      if (!isDismissed) {
+        banner.style.display = "inline-flex";
+        if (bannerVer) bannerVer.textContent = cleanVer;
+        if (bannerLink && data.release_url) bannerLink.href = data.release_url;
+        if (bannerCodeLink) {
+          bannerCodeLink.href = `https://github.com/PlasmaDrifter/NewsCurator/tree/${cleanVer}`;
         }
+      } else {
+        banner.style.display = "none";
       }
-    })
-    .catch(() => {});
-})();
-{% endif %}
+    }
+  } else {
+    clearUpdateUI();
+  }
+}
+
+function clearUpdateUI() {
+  const navBadge = document.getElementById("nav-update-badge");
+  const banner = document.getElementById("settings-update-banner");
+  const btnSettings = document.getElementById("btn-settings");
+
+  if (btnSettings) btnSettings.title = "Manage Sources & Settings";
+  if (navBadge) navBadge.style.display = "none";
+  if (banner) banner.style.display = "none";
+}
+
+function initUpdateEventListeners() {
+  const btnDismiss = document.getElementById("btn-dismiss-update-banner");
+  if (btnDismiss) {
+    btnDismiss.addEventListener("click", () => {
+      const banner = document.getElementById("settings-update-banner");
+      if (banner) banner.style.display = "none";
+      const navBadge = document.getElementById("nav-update-badge");
+      if (navBadge) navBadge.style.display = "none";
+
+      if (appUpdateData && appUpdateData.latest_version) {
+        localStorage.setItem("app_dismissed_update_version", appUpdateData.latest_version);
+      }
+    });
+  }
+
+  const btnApply = document.getElementById("btn-apply-update");
+  if (btnApply) {
+    btnApply.addEventListener("click", () => {
+      executeSelfUpdate();
+    });
+  }
+}
+
+async function executeSelfUpdate() {
+  const versionStr = appUpdateData && appUpdateData.latest_version ? ` to ${appUpdateData.latest_version}` : "";
+  const confirmed = window.confirm(`Update application${versionStr}? The server will automatically download changes and restart.`);
+  if (!confirmed) return;
+
+  const btnApply = document.getElementById("btn-apply-update");
+  const btnDismiss = document.getElementById("btn-dismiss-update-banner");
+  const origBtnContent = btnApply ? btnApply.innerHTML : "Update Now";
+
+  if (btnApply) {
+    btnApply.disabled = true;
+    btnApply.innerHTML = `<svg class="spin-loop" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Updating...`;
+    btnApply.style.color = "var(--accent-orange, #f5a97f)";
+    btnApply.style.borderColor = "var(--accent-orange, #f5a97f)";
+    btnApply.style.cursor = "wait";
+  }
+  if (btnDismiss) {
+    btnDismiss.style.display = "none";
+  }
+
+  const progressModal = document.getElementById("update-progress-modal");
+  const progressTitle = document.getElementById("update-progress-title");
+  const progressDesc = document.getElementById("update-progress-desc");
+
+  if (progressModal) {
+    progressModal.style.display = "flex";
+  }
+
+  try {
+    const res = await fetch("/api/apply-update", { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server returned error ${res.status}`);
+    }
+
+    if (progressTitle) progressTitle.textContent = "Restarting Server...";
+    if (progressDesc) progressDesc.textContent = "Application updated. Waiting for server to come back online...";
+
+    await new Promise((r) => setTimeout(r, 2000));
+
+    let reconnected = false;
+    for (let i = 0; i < 40; i++) {
+      try {
+        const ping = await fetch("/api/status", { cache: "no-store" });
+        if (ping.ok || ping.status === 404) {
+          reconnected = true;
+          break;
+        }
+      } catch (_) {
+        // Server rebooting
+      }
+      await new Promise((r) => setTimeout(r, 750));
+    }
+
+    if (reconnected) {
+      if (progressTitle) progressTitle.textContent = "Reloading...";
+      if (progressDesc) progressDesc.textContent = "Update complete! Refreshing page...";
+      localStorage.removeItem("app_dismissed_update_version");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      if (progressDesc) {
+        progressDesc.textContent = "Server took too long to respond. Please refresh manually or check system logs.";
+      }
+      setTimeout(() => {
+        if (progressModal) progressModal.style.display = "none";
+        if (btnApply) {
+          btnApply.disabled = false;
+          btnApply.innerHTML = origBtnContent;
+          btnApply.style.cursor = "pointer";
+        }
+        if (btnDismiss) btnDismiss.style.display = "";
+      }, 5000);
+    }
+  } catch (err) {
+    if (progressModal) progressModal.style.display = "none";
+    if (btnApply) {
+      btnApply.disabled = false;
+      btnApply.innerHTML = origBtnContent;
+      btnApply.style.cursor = "pointer";
+    }
+    if (btnDismiss) btnDismiss.style.display = "";
+    alert(`Update failed: ${err.message}`);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  initUpdateEventListeners();
+  {% if check_for_updates %}
+  checkForAppUpdates();
+  {% endif %}
+});
 </script>
 </body>
 </html>

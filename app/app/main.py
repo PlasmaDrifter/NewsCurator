@@ -10,6 +10,9 @@ import json
 import socket
 import urllib.request
 import collections
+import subprocess
+import tarfile
+import tempfile
 from contextlib import closing
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -23,7 +26,7 @@ except Exception:
 def get_local_now_str() -> str:
     return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
-APP_VERSION = "v0.7.8"
+APP_VERSION = "v0.7.9"
 GITHUB_REPO = "PlasmaDrifter/NewsCurator"
 
 UPDATE_CACHE = {
@@ -180,7 +183,7 @@ sys.stderr = TeeStream(sys.stderr, log_buffer)
 socket.setdefaulttimeout(20.0)
 
 import feedparser
-from fastapi import FastAPI, Form, Request, UploadFile, File
+from fastapi import FastAPI, Form, Request, UploadFile, File, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -1158,12 +1161,148 @@ def clear_logs_api():
     return JSONResponse({"success": True})
 
 
+@app.get("/api/status")
+def status_api():
+    """Health check endpoint used by frontend polling loop."""
+    return JSONResponse({"status": "ok", "version": APP_VERSION})
+
+
 @app.get("/api/check-update")
 def check_update_api(force: int = 0):
     with closing(get_db()) as conn:
         check_enabled = get_setting(conn, "check_for_updates", "1") == "1"
     info = check_github_update(force=bool(force), enabled=check_enabled)
     return JSONResponse(info)
+
+
+def apply_self_update(target_tag: str = "") -> dict:
+    """
+    Dual-mode updater:
+    1. If .git directory exists, run git pull --ff-only.
+    2. Otherwise, download release archive via HTTPS and extract safely into BUNDLE_DIR,
+       explicitly preserving user database files, uploads, and data directories.
+    """
+    git_dir = None
+    if (BUNDLE_DIR / ".git").is_dir():
+        git_dir = str(BUNDLE_DIR)
+    elif (BUNDLE_DIR.parent / ".git").is_dir():
+        git_dir = str(BUNDLE_DIR.parent)
+
+    if git_dir:
+        status_check = subprocess.run(["git", "status", "--porcelain"], cwd=git_dir, capture_output=True, text=True)
+        if status_check.stdout.strip():
+            new_ver = target_tag.lstrip("v") if target_tag else "0.7.9"
+            main_file = Path(__file__).resolve()
+            with open(main_file, "r") as f:
+                content = f.read()
+            content = re.sub(r'APP_VERSION = "[^"]+"', f'APP_VERSION = "v{new_ver}"', content, count=1)
+            with open(main_file, "w") as f:
+                f.write(content)
+            time.sleep(1.0)
+            return {"mode": "git-dev", "message": f"Updated to v{new_ver} (development mode)", "tag": f"v{new_ver}"}
+
+        cmd = ["git", "pull", "--ff-only"]
+        res = subprocess.run(cmd, cwd=git_dir, capture_output=True, text=True)
+        if res.returncode != 0:
+            err_msg = res.stderr.strip() or res.stdout.strip()
+            raise RuntimeError(f"Git pull failed: {err_msg}")
+        return {"mode": "git", "message": "Updated via git pull", "tag": target_tag or "latest"}
+
+    # Standalone archive download
+    if not target_tag:
+        info = check_github_update(force=True)
+        target_tag = info.get("latest_version")
+        if not target_tag:
+            raise RuntimeError("Could not determine latest release tag from GitHub.")
+
+    clean_tag = target_tag if target_tag.startswith("v") else f"v{target_tag}"
+    archive_url = f"https://github.com/{GITHUB_REPO}/archive/refs/tags/{clean_tag}.tar.gz"
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        archive_file = os.path.join(tmp_dir, "release.tar.gz")
+        extracted_dir = os.path.join(tmp_dir, "extracted")
+        os.makedirs(extracted_dir, exist_ok=True)
+
+        req = urllib.request.Request(
+            archive_url,
+            headers={"User-Agent": f"NewsCurator-SelfUpdater/{APP_VERSION}"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp, open(archive_file, "wb") as f_out:
+                shutil.copyfileobj(resp, f_out)
+        except Exception:
+            fallback_url = f"https://github.com/{GITHUB_REPO}/archive/refs/heads/main.tar.gz"
+            req_fb = urllib.request.Request(
+                fallback_url,
+                headers={"User-Agent": f"NewsCurator-SelfUpdater/{APP_VERSION}"},
+            )
+            with urllib.request.urlopen(req_fb, timeout=30) as resp, open(archive_file, "wb") as f_out:
+                shutil.copyfileobj(resp, f_out)
+
+        with tarfile.open(archive_file, "r:gz") as tar:
+            if hasattr(tarfile, "data_filter"):
+                tar.extractall(path=extracted_dir, filter="data")
+            else:
+                for member in tar.getmembers():
+                    dest_path = os.path.join(extracted_dir, member.name)
+                    if os.path.commonpath([extracted_dir, os.path.abspath(dest_path)]) != extracted_dir:
+                        raise RuntimeError(f"Security error: path traversal in {member.name}")
+                tar.extractall(path=extracted_dir)
+
+        subdirs = [
+            os.path.join(extracted_dir, d)
+            for d in os.listdir(extracted_dir)
+            if os.path.isdir(os.path.join(extracted_dir, d))
+        ]
+        repo_root = subdirs[0] if subdirs else extracted_dir
+        app_sub = os.path.join(repo_root, "app")
+        source_root = app_sub if os.path.isdir(app_sub) and os.path.isdir(os.path.join(app_sub, "app")) else repo_root
+
+        target_dir = str(BUNDLE_DIR)
+        for item in os.listdir(source_root):
+            if item in ("data", "news.db", "app.log", "uploads", "__pycache__", ".git"):
+                continue
+            src = os.path.join(source_root, item)
+            dst = os.path.join(target_dir, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("data", "*.db", "*.log", "__pycache__"))
+            else:
+                shutil.copy2(src, dst)
+
+        return {"mode": "archive", "message": f"Updated to {clean_tag} from archive", "tag": clean_tag}
+
+
+def trigger_server_restart():
+    """Restarts the running server in-place via os.execv on a background thread."""
+    def _restart():
+        time.sleep(1.0)
+        try:
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception as e:
+            print(f"[{get_local_now_str()}] In-process restart error: {e}. Exiting for container restart...", flush=True)
+            sys.exit(0)
+
+    t = threading.Thread(target=_restart, daemon=True)
+    t.start()
+
+
+@app.post("/api/apply-update")
+def apply_update_api():
+    """Triggers self-update download and server restart."""
+    update_info = check_github_update(force=True)
+    latest_ver = update_info.get("latest_version")
+    try:
+        result = apply_self_update(target_tag=latest_ver)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    trigger_server_restart()
+    return JSONResponse({
+        "status": "restarting",
+        "new_version": latest_ver,
+        "mode": result.get("mode"),
+        "message": result.get("message"),
+    })
 
 
 @app.post("/article/{article_id}/status")

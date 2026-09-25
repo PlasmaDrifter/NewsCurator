@@ -4,7 +4,27 @@
 <div class="settings-page">
   <!-- Top header -->
   <div class="settings-header">
-    <h1>Manage Sources &amp; Settings</h1>
+    <div class="settings-title-row">
+      <h1>Manage Sources &amp; Settings</h1>
+      <span class="settings-version-tag" id="settings-app-version">{{ app_version }}</span>
+
+      <!-- Inline Update Notification Banner -->
+      <div id="settings-update-banner" class="settings-update-banner" style="{% if update_available %}display: inline-flex;{% else %}display: none;{% endif %}">
+        <span class="update-banner-msg">
+          Version <strong id="update-banner-version">{{ latest_version }}</strong> is available.
+        </span>
+        <a id="update-banner-link" href="{{ update_release_url }}" target="_blank" rel="noopener noreferrer" class="update-banner-link" title="View release notes and changelog">
+          Release Notes &rarr;
+        </a>
+        <a id="update-banner-code-link" href="https://github.com/PlasmaDrifter/NewsCurator/tree/{{ latest_version }}" target="_blank" rel="noopener noreferrer" class="update-banner-link" title="Review source code on GitHub">
+          Review Code &rarr;
+        </a>
+        <div class="update-banner-actions">
+          <button type="button" id="btn-apply-update" class="update-banner-apply-btn" title="Automatically update application and restart server">Update Now</button>
+          <button type="button" id="btn-dismiss-update-banner" class="update-banner-clear-btn" title="Clear update notification">Clear</button>
+        </div>
+      </div>
+    </div>
     <div class="settings-header-actions">
       <button type="button" class="btn-logs-header" onclick="openLogsModal()" title="View System &amp; Background Logs">
         <svg class="logs-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -234,9 +254,9 @@
             </div>
             <div class="setting-item-desc">
               {% if check_for_updates %}
-                Automatically check GitHub releases (Current: {{ app_version|default('v0.7.8') }})
+                Automatically check GitHub releases (Current: {{ app_version|default('v0.7.9') }})
               {% else %}
-                Update checks disabled (Current: {{ app_version|default('v0.7.8') }})
+                Update checks disabled (Current: {{ app_version|default('v0.7.9') }})
               {% endif %}
             </div>
           </div>

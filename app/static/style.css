@@ -136,6 +136,10 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   transition: transform 0.3s ease;
 }
 
+.nav-settings-btn {
+  position: relative;
+}
+
 .nav-settings-btn:hover .settings-gear {
   transform: rotate(45deg);
 }
@@ -174,14 +178,6 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   transform: scale(1.1);
 }
 
-.nav-github-btn.has-update {
-  border-color: #f97316;
-}
-
-.nav-github-btn.has-update .nav-github-icon {
-  color: #f97316;
-}
-
 .nav-update-badge {
   position: absolute;
   top: -4px;
@@ -189,7 +185,7 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   width: 13px;
   height: 13px;
   background: #f97316;
-  color: #ffffff;
+  color: #ffffff !important;
   border-radius: 50%;
   font-size: 9px;
   font-weight: 900;
@@ -200,6 +196,7 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   box-shadow: 0 0 0 2px var(--bg-elevated), 0 2px 4px rgba(0, 0, 0, 0.4);
   animation: update-pulse 2s infinite ease-in-out;
   pointer-events: none;
+  z-index: 5;
 }
 
 @keyframes update-pulse {
@@ -207,6 +204,165 @@ a.cat-btn, a.cat-btn:hover { color: inherit; text-decoration: none; }
   50% { transform: scale(1.15); box-shadow: 0 0 0 2px var(--bg-elevated), 0 0 6px rgba(249, 115, 22, 0.7); }
   100% { transform: scale(1); box-shadow: 0 0 0 2px var(--bg-elevated); }
 }
+
+/* Settings Title Row & Version Tag */
+.settings-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.settings-version-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim, #94a3b8);
+  background-color: var(--bg-card, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border, #333a4d);
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  user-select: none;
+  line-height: 1.2;
+}
+
+/* Inline Update Notification Banner (Directly next to Manage Sources & Settings) */
+.settings-update-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 8px;
+  height: 24px;
+  box-sizing: border-box;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  border-radius: 4px;
+  color: var(--text, #f1f5f9);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.update-banner-msg {
+  font-size: 11px;
+  color: var(--text, #f1f5f9);
+}
+
+.update-banner-msg strong {
+  color: #f97316;
+  font-weight: 700;
+}
+
+.update-banner-link {
+  color: var(--accent, #38bdf8);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 11px;
+  transition: color 0.15s ease;
+}
+
+.update-banner-link:hover {
+  text-decoration: underline;
+  color: #7dd3fc;
+}
+
+.update-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+}
+
+.update-banner-apply-btn,
+.update-banner-clear-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  color: var(--text, #f1f5f9);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.update-banner-apply-btn:hover,
+.update-banner-clear-btn:hover {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: #f97316;
+  color: #f97316;
+}
+
+/* Update Progress Modal & Refresh Loop */
+.update-modal-backdrop {
+  z-index: 3000 !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(10, 11, 16, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-modal-content {
+  background-color: var(--bg-card, #1e2230);
+  border: 1px solid var(--border, #333a4d);
+  border-radius: 8px;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  padding: 32px 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.update-progress-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.update-progress-body h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #f1f5f9);
+}
+
+.update-progress-body p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-dim, #94a3b8);
+  line-height: 1.4;
+}
+
+.update-refresh-loop {
+  width: 44px;
+  height: 44px;
+  color: #f97316;
+  flex-shrink: 0;
+}
+
+.spin-loop {
+  animation: spin-loop 1s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes spin-loop {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 
 /* --- TIGHTER MAIN CONTAINER PADDING --- */
 main {
