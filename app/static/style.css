@@ -687,7 +687,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 .card-body {
-  padding: 8px 16px 28px;
+  padding: 8px 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -755,14 +755,14 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   font-size: 0.88rem;
   color: var(--text-dim);
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 .card-footer {
   position: absolute;
-  bottom: 8px;
+  bottom: 5px;
   left: 16px;
   right: 16px;
   display: flex;
