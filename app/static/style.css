@@ -771,7 +771,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 .card-domain, .card-added-time {
-  font-size: 0.75rem;
+  font-size: 0.69rem;
   font-style: italic;
   color: #e6c84a;
 }
