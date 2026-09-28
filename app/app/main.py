@@ -1199,7 +1199,7 @@ def apply_self_update(target_tag: str = "") -> dict:
     if git_dir:
         status_check = subprocess.run(["git", "status", "--porcelain"], cwd=git_dir, capture_output=True, text=True)
         if status_check.stdout.strip():
-            new_ver = target_tag.lstrip("v") if target_tag else "0.7.9"
+            new_ver = target_tag.lstrip("v") if target_tag else APP_VERSION.lstrip("v")
             main_file = Path(__file__).resolve()
             with open(main_file, "r") as f:
                 content = f.read()
@@ -1212,6 +1212,18 @@ def apply_self_update(target_tag: str = "") -> dict:
         cmd = ["git", "pull", "--ff-only"]
         res = subprocess.run(cmd, cwd=git_dir, capture_output=True, text=True)
         if res.returncode != 0:
+            # Fast-forward failed (e.g. upstream history was squashed, amended, or rebased)
+            # Since working tree is verified clean, safely fetch and reset to remote branch
+            fetch_res = subprocess.run(["git", "fetch", "--prune", "--tags", "origin"], cwd=git_dir, capture_output=True, text=True)
+            if fetch_res.returncode == 0:
+                branch_res = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=git_dir, capture_output=True, text=True)
+                branch = branch_res.stdout.strip() or "main"
+                if branch == "HEAD":
+                    branch = "main"
+                reset_res = subprocess.run(["git", "reset", "--hard", f"origin/{branch}"], cwd=git_dir, capture_output=True, text=True)
+                if reset_res.returncode == 0:
+                    return {"mode": "git-reset", "message": f"Updated via git reset to origin/{branch}", "tag": target_tag or "latest"}
+
             err_msg = res.stderr.strip() or res.stdout.strip()
             raise RuntimeError(f"Git pull failed: {err_msg}")
         return {"mode": "git", "message": "Updated via git pull", "tag": target_tag or "latest"}
