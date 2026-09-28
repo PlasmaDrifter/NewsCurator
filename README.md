@@ -10,9 +10,6 @@ A fast, self-hosted, dark-themed **RSS news aggregator** dashboard built with **
 
 This repository contains the complete web application source code, container definition, systemd Quadlet configuration, and application screenshots.
 
-> [!NOTE]
-> **Questions, custom configs, or ideas?** Join us on Reddit at <nobr>[**r/PlasmaDrifterProjects**](https://reddit.com/r/PlasmaDrifterProjects)</nobr>!
-
 ---
 
 ## Screenshots
