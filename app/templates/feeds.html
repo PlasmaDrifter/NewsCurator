@@ -254,9 +254,9 @@
             </div>
             <div class="setting-item-desc">
               {% if check_for_updates %}
-                Automatically check GitHub releases (Current: {{ app_version|default('v0.8.1') }})
+                Automatically check GitHub releases (Current: {{ app_version|default('v0.8.2') }})
               {% else %}
-                Update checks disabled (Current: {{ app_version|default('v0.8.1') }})
+                Update checks disabled (Current: {{ app_version|default('v0.8.2') }})
               {% endif %}
             </div>
           </div>
@@ -377,12 +377,11 @@
           <!-- Add Category Form Row -->
           <form method="post" action="/categories/add" class="add-category-row">
             <input type="text" name="name" placeholder="New category name..." required class="compact-input flex-1">
-            <label class="pinwheel-color-wrap" title="Pick category color">
-              <span class="pinwheel-disc">
-                <span class="pinwheel-center" id="add-cat-color-preview" style="background-color: #5b8cff;"></span>
-              </span>
-              <input type="color" name="color" id="add-cat-color-input" value="#5b8cff" oninput="document.getElementById('add-cat-color-preview').style.backgroundColor = this.value" class="pinwheel-color-input">
-            </label>
+            <button type="button" class="swatch-btn" id="add-cat-swatch-btn" data-input-id="add-cat-color-input" data-label="Category Color" title="Pick category color" onclick="openColorPopover(this, event)">
+              <span class="swatch-preview" id="add-cat-color-preview" style="background-color: #5b8cff;"></span>
+              <span class="color-hex" id="add-cat-color-hex">#5B8CFF</span>
+            </button>
+            <input type="hidden" name="color" id="add-cat-color-input" value="#5b8cff">
             <button type="submit" class="btn-sm-accent" style="white-space: nowrap;">+ Add Category</button>
           </form>
 
@@ -503,13 +502,11 @@
         <div class="modal-field">
           <label class="modal-label" for="modal-cat-color">Category Color</label>
           <div class="modal-color-row">
-            <label class="pinwheel-color-wrap modal-pinwheel" title="Pick category color">
-              <span class="pinwheel-disc">
-                <span class="pinwheel-center" id="modal-cat-pinwheel-center" style="background-color: #5b8cff;"></span>
-              </span>
-              <input type="color" id="modal-cat-color" name="color" class="pinwheel-color-input" oninput="updateModalPreviewColor(this.value)">
-            </label>
-            <input type="text" id="modal-cat-color-hex" class="modal-hex-input" maxlength="7" placeholder="#5b8cff" oninput="handleHexInput(this.value)">
+            <button type="button" class="swatch-btn" id="modal-cat-swatch-btn" data-input-id="modal-cat-color" data-label="Category Color" title="Pick category color" onclick="openColorPopover(this, event)">
+              <span class="swatch-preview" id="modal-cat-color-preview" style="background-color: #5b8cff;"></span>
+              <span class="color-hex" id="modal-cat-color-hex">#5B8CFF</span>
+            </button>
+            <input type="hidden" id="modal-cat-color" name="color" value="#5b8cff">
           </div>
         </div>
 
@@ -686,79 +683,100 @@
           <div class="theme-group-label">Customize Individual Colors</div>
           <div class="theme-colors-grid">
             <div class="theme-color-item">
-              <label class="theme-color-label" for="picker-theme-bg">
+              <label class="theme-color-label">
                 <span>Background</span>
                 <small>App body canvas</small>
               </label>
               <div class="theme-color-control">
-                <input type="color" id="picker-theme-bg" value="{{ theme_colors.bg }}" oninput="syncThemeColor('bg', this.value)">
-                <input type="text" id="hex-theme-bg" name="theme_bg" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.bg }}" oninput="syncThemeColor('bg', this.value, true)">
+                <button type="button" class="swatch-btn" data-token="bg" data-input-id="hex-theme-bg" data-var="--bg" data-label="Background" onclick="openColorPopover(this, event)">
+                  <span class="swatch-preview" id="preview-theme-bg" style="background-color: {{ theme_colors.bg }};"></span>
+                  <span class="color-hex" id="hex-label-theme-bg">{{ theme_colors.bg | upper }}</span>
+                </button>
+                <input type="hidden" id="hex-theme-bg" name="theme_bg" value="{{ theme_colors.bg }}">
               </div>
             </div>
 
             <div class="theme-color-item">
-              <label class="theme-color-label" for="picker-theme-bg-card">
+              <label class="theme-color-label">
                 <span>Cards &amp; Panels</span>
                 <small>Cards, lists, settings</small>
               </label>
               <div class="theme-color-control">
-                <input type="color" id="picker-theme-bg-card" value="{{ theme_colors.bg_card }}" oninput="syncThemeColor('bg_card', this.value)">
-                <input type="text" id="hex-theme-bg-card" name="theme_bg_card" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.bg_card }}" oninput="syncThemeColor('bg_card', this.value, true)">
+                <button type="button" class="swatch-btn" data-token="bg_card" data-input-id="hex-theme-bg-card" data-var="--bg-card" data-label="Cards &amp; Panels" onclick="openColorPopover(this, event)">
+                  <span class="swatch-preview" id="preview-theme-bg-card" style="background-color: {{ theme_colors.bg_card }};"></span>
+                  <span class="color-hex" id="hex-label-theme-bg-card">{{ theme_colors.bg_card | upper }}</span>
+                </button>
+                <input type="hidden" id="hex-theme-bg-card" name="theme_bg_card" value="{{ theme_colors.bg_card }}">
               </div>
             </div>
 
             <div class="theme-color-item">
-              <label class="theme-color-label" for="picker-theme-bg-elevated">
+              <label class="theme-color-label">
                 <span>Topbar &amp; Header</span>
                 <small>Sticky topbar &amp; modal headers</small>
               </label>
               <div class="theme-color-control">
-                <input type="color" id="picker-theme-bg-elevated" value="{{ theme_colors.bg_elevated }}" oninput="syncThemeColor('bg_elevated', this.value)">
-                <input type="text" id="hex-theme-bg-elevated" name="theme_bg_elevated" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.bg_elevated }}" oninput="syncThemeColor('bg_elevated', this.value, true)">
+                <button type="button" class="swatch-btn" data-token="bg_elevated" data-input-id="hex-theme-bg-elevated" data-var="--bg-elevated" data-label="Topbar &amp; Header" onclick="openColorPopover(this, event)">
+                  <span class="swatch-preview" id="preview-theme-bg-elevated" style="background-color: {{ theme_colors.bg_elevated }};"></span>
+                  <span class="color-hex" id="hex-label-theme-bg-elevated">{{ theme_colors.bg_elevated | upper }}</span>
+                </button>
+                <input type="hidden" id="hex-theme-bg-elevated" name="theme_bg_elevated" value="{{ theme_colors.bg_elevated }}">
               </div>
             </div>
 
             <div class="theme-color-item">
-              <label class="theme-color-label" for="picker-theme-border">
+              <label class="theme-color-label">
                 <span>Borders &amp; Dividers</span>
                 <small>Card outlines &amp; separators</small>
               </label>
               <div class="theme-color-control">
-                <input type="color" id="picker-theme-border" value="{{ theme_colors.border }}" oninput="syncThemeColor('border', this.value)">
-                <input type="text" id="hex-theme-border" name="theme_border" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.border }}" oninput="syncThemeColor('border', this.value, true)">
+                <button type="button" class="swatch-btn" data-token="border" data-input-id="hex-theme-border" data-var="--border" data-label="Borders &amp; Dividers" onclick="openColorPopover(this, event)">
+                  <span class="swatch-preview" id="preview-theme-border" style="background-color: {{ theme_colors.border }};"></span>
+                  <span class="color-hex" id="hex-label-theme-border">{{ theme_colors.border | upper }}</span>
+                </button>
+                <input type="hidden" id="hex-theme-border" name="theme_border" value="{{ theme_colors.border }}">
               </div>
             </div>
 
             <div class="theme-color-item">
-              <label class="theme-color-label" for="picker-theme-text">
+              <label class="theme-color-label">
                 <span>Primary Text</span>
                 <small>Headlines &amp; primary labels</small>
               </label>
               <div class="theme-color-control">
-                <input type="color" id="picker-theme-text" value="{{ theme_colors.text }}" oninput="syncThemeColor('text', this.value)">
-                <input type="text" id="hex-theme-text" name="theme_text" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.text }}" oninput="syncThemeColor('text', this.value, true)">
+                <button type="button" class="swatch-btn" data-token="text" data-input-id="hex-theme-text" data-var="--text" data-label="Primary Text" onclick="openColorPopover(this, event)">
+                  <span class="swatch-preview" id="preview-theme-text" style="background-color: {{ theme_colors.text }};"></span>
+                  <span class="color-hex" id="hex-label-theme-text">{{ theme_colors.text | upper }}</span>
+                </button>
+                <input type="hidden" id="hex-theme-text" name="theme_text" value="{{ theme_colors.text }}">
               </div>
             </div>
 
             <div class="theme-color-item">
-              <label class="theme-color-label" for="picker-theme-text-dim">
+              <label class="theme-color-label">
                 <span>Muted Text</span>
                 <small>Dates, hints &amp; domains</small>
               </label>
               <div class="theme-color-control">
-                <input type="color" id="picker-theme-text-dim" value="{{ theme_colors.text_dim }}" oninput="syncThemeColor('text_dim', this.value)">
-                <input type="text" id="hex-theme-text-dim" name="theme_text_dim" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.text_dim }}" oninput="syncThemeColor('text_dim', this.value, true)">
+                <button type="button" class="swatch-btn" data-token="text_dim" data-input-id="hex-theme-text-dim" data-var="--text-dim" data-label="Muted Text" onclick="openColorPopover(this, event)">
+                  <span class="swatch-preview" id="preview-theme-text-dim" style="background-color: {{ theme_colors.text_dim }};"></span>
+                  <span class="color-hex" id="hex-label-theme-text-dim">{{ theme_colors.text_dim | upper }}</span>
+                </button>
+                <input type="hidden" id="hex-theme-text-dim" name="theme_text_dim" value="{{ theme_colors.text_dim }}">
               </div>
             </div>
 
             <div class="theme-color-item" style="grid-column: 1 / -1;">
-              <label class="theme-color-label" for="picker-theme-accent">
+              <label class="theme-color-label">
                 <span>Accent Color</span>
                 <small>Links, active chips, buttons &amp; highlights</small>
               </label>
               <div class="theme-color-control">
-                <input type="color" id="picker-theme-accent" value="{{ theme_colors.accent }}" oninput="syncThemeColor('accent', this.value)">
-                <input type="text" id="hex-theme-accent" name="theme_accent" class="modal-hex-input theme-hex" maxlength="7" value="{{ theme_colors.accent }}" oninput="syncThemeColor('accent', this.value, true)">
+                <button type="button" class="swatch-btn" data-token="accent" data-input-id="hex-theme-accent" data-var="--accent" data-label="Accent Color" onclick="openColorPopover(this, event)">
+                  <span class="swatch-preview" id="preview-theme-accent" style="background-color: {{ theme_colors.accent }};"></span>
+                  <span class="color-hex" id="hex-label-theme-accent">{{ theme_colors.accent | upper }}</span>
+                </button>
+                <input type="hidden" id="hex-theme-accent" name="theme_accent" value="{{ theme_colors.accent }}">
               </div>
             </div>
           </div>
@@ -812,6 +830,41 @@
   </div>
 </div>
 
+<!-- Custom Color Picker Floating Popover -->
+<div id="app-color-popover" class="custom-color-panel hidden" role="dialog" aria-label="Color Picker">
+  <div class="color-popover-header">
+    <span class="color-popover-title" id="colorPopoverTitle">Color Picker</span>
+    <div class="color-popover-header-actions">
+      <button type="button" class="color-popover-btn color-popover-cancel" id="colorPopoverCancel" title="Revert and close">Cancel</button>
+      <button type="button" class="color-popover-btn color-popover-done" id="colorPopoverDone" title="Confirm and close">Done</button>
+    </div>
+  </div>
+
+  <div class="custom-chips-row">
+    <button type="button" class="color-chip" data-color="#ef4444" style="background-color: #ef4444;" title="Red"></button>
+    <button type="button" class="color-chip" data-color="#f97316" style="background-color: #f97316;" title="Orange"></button>
+    <button type="button" class="color-chip" data-color="#eab308" style="background-color: #eab308;" title="Yellow"></button>
+    <button type="button" class="color-chip" data-color="#84cc16" style="background-color: #84cc16;" title="Lime"></button>
+    <button type="button" class="color-chip" data-color="#22c55e" style="background-color: #22c55e;" title="Green"></button>
+    <button type="button" class="color-chip" data-color="#06b6d4" style="background-color: #06b6d4;" title="Cyan"></button>
+    <button type="button" class="color-chip" data-color="#3b82f6" style="background-color: #3b82f6;" title="Blue"></button>
+    <button type="button" class="color-chip" data-color="#9146ff" style="background-color: #9146ff;" title="Purple"></button>
+    <button type="button" class="color-chip" data-color="#ec4899" style="background-color: #ec4899;" title="Pink"></button>
+    <button type="button" class="color-chip" data-color="#ffffff" style="background-color: #ffffff;" title="White"></button>
+  </div>
+
+  <div class="picker-bottom-row">
+    <span class="custom-preview-dot" id="pickerPreviewDot" title="Current shade preview"></span>
+    <div class="shade-slider-track">
+      <input type="range" id="customShadeSlider" min="0" max="100" value="50" class="shade-slider" title="Drag left for darker shades, right for lighter shades">
+    </div>
+    <div class="custom-hex-box">
+      <span class="custom-hex-prefix">#</span>
+      <input type="text" id="customHexInput" class="custom-hex-input" maxlength="6" placeholder="8AADF4" spellcheck="false" title="Hex code">
+    </div>
+  </div>
+</div>
+
 <script>
 function enableEdit(id) {
   document.querySelectorAll('.view-mode-' + id).forEach(el => el.style.display = 'none');
@@ -835,16 +888,17 @@ function hexToRgba(hex, alpha) {
 }
 
 function updateModalPreviewColor(color) {
+  const normColor = normalizeHex(color);
   const preview = document.getElementById('modal-cat-preview');
   const hexInput = document.getElementById('modal-cat-color-hex');
   const colorInput = document.getElementById('modal-cat-color');
-  const pinwheelCenter = document.getElementById('modal-cat-pinwheel-center');
-  if (hexInput && hexInput !== document.activeElement) hexInput.value = color;
-  if (colorInput && colorInput !== document.activeElement) colorInput.value = color;
-  if (pinwheelCenter) pinwheelCenter.style.backgroundColor = color;
+  const swatchPreview = document.getElementById('modal-cat-color-preview');
+  if (hexInput) hexInput.textContent = normColor;
+  if (colorInput) colorInput.value = normColor;
+  if (swatchPreview) swatchPreview.style.backgroundColor = normColor;
   if (preview) {
-    preview.style.backgroundColor = hexToRgba(color, 0.15);
-    preview.style.borderColor = hexToRgba(color, 0.5);
+    preview.style.backgroundColor = hexToRgba(normColor, 0.15);
+    preview.style.borderColor = hexToRgba(normColor, 0.5);
     preview.style.color = '#c7cbd3';
   }
 }
@@ -898,6 +952,7 @@ function openCategoryModal(name, color, feedCount) {
 }
 
 function closeCategoryModal() {
+  closeColorPopover();
   const modal = document.getElementById('category-edit-modal');
   if (modal) {
     modal.style.display = 'none';
@@ -1089,6 +1144,7 @@ function openThemeModal() {
 }
 
 function closeThemeModal() {
+  closeColorPopover();
   const modal = document.getElementById('theme-modal');
   if (modal) modal.style.display = 'none';
   revertLiveDOMTheme();
@@ -1373,18 +1429,196 @@ function deleteCustomTheme(dbId, event) {
   });
 }
 
-function syncThemeColor(token, value, fromHexInput = false) {
-  if (fromHexInput) {
-    if (!value.startsWith('#')) value = '#' + value;
-    if (!/^#[0-9A-Fa-f]{6}$/.test(value)) return;
-    const picker = document.getElementById('picker-theme-' + token.replace('_', '-'));
-    if (picker) picker.value = value;
+function computeShade(baseHex, val) {
+  let hex = (baseHex || "#8AADF4").replace(/^#/, "");
+  if (hex.length === 3) {
+    hex = hex.split("").map((c) => c + c).join("");
+  }
+  const num = parseInt(hex, 16);
+  if (isNaN(num)) return "#8AADF4";
+
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+
+  let outR, outG, outB;
+  if (val <= 50) {
+    const factor = val / 50;
+    outR = Math.round(r * factor);
+    outG = Math.round(g * factor);
+    outB = Math.round(b * factor);
   } else {
-    const hexInput = document.getElementById('hex-theme-' + token.replace('_', '-'));
-    if (hexInput) hexInput.value = value;
+    const factor = (val - 50) / 50;
+    outR = Math.round(r + (255 - r) * factor);
+    outG = Math.round(g + (255 - g) * factor);
+    outB = Math.round(b + (255 - b) * factor);
   }
 
-  currentThemeDraft[token] = value;
+  const toHex = (n) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+  return `#${toHex(outR)}${toHex(outG)}${toHex(outB)}`.toUpperCase();
+}
+
+function normalizeHex(hex) {
+  if (!hex) return "#8AADF4";
+  let clean = hex.trim().replace(/^#/, "");
+  if (clean.length === 3) {
+    clean = clean.split("").map((c) => c + c).join("");
+  }
+  return ("#" + clean).toUpperCase();
+}
+
+let activeColorPicker = {
+  activeButton: null,
+  token: null,
+  inputId: null,
+  varName: null,
+  originalColor: "#8AADF4",
+  baseColor: "#8AADF4",
+  currentColor: "#8AADF4",
+  shade: 50
+};
+
+function closeColorPopover() {
+  const popover = document.getElementById("app-color-popover");
+  if (popover) popover.classList.add("hidden");
+  if (activeColorPicker.activeButton) {
+    activeColorPicker.activeButton.classList.remove("active");
+    activeColorPicker.activeButton = null;
+  }
+}
+
+function cancelColorPopover() {
+  if (activeColorPicker.token && activeColorPicker.originalColor) {
+    syncThemeColor(activeColorPicker.token, activeColorPicker.originalColor);
+  } else if (activeColorPicker.inputId && activeColorPicker.originalColor) {
+    applyActivePickerColor(activeColorPicker.originalColor, activeColorPicker.originalColor, 50);
+  }
+  closeColorPopover();
+}
+
+function openColorPopover(btn, event) {
+  if (event) event.stopPropagation();
+  const popover = document.getElementById("app-color-popover");
+  if (!popover) return;
+
+  if (activeColorPicker.activeButton === btn && !popover.classList.contains("hidden")) {
+    closeColorPopover();
+    return;
+  }
+
+  if (activeColorPicker.activeButton) {
+    activeColorPicker.activeButton.classList.remove("active");
+  }
+
+  activeColorPicker.activeButton = btn;
+  btn.classList.add("active");
+
+  const token = btn.dataset.token;
+  const inputId = btn.dataset.inputId;
+  const varName = btn.dataset.var;
+  const label = btn.dataset.label || "Color Picker";
+  const input = document.getElementById(inputId);
+
+  let currentVal = input ? input.value : (currentThemeDraft[token] || "#8AADF4");
+  currentVal = normalizeHex(currentVal);
+
+  activeColorPicker.token = token;
+  activeColorPicker.inputId = inputId;
+  activeColorPicker.varName = varName;
+  activeColorPicker.originalColor = currentVal;
+  activeColorPicker.baseColor = currentVal;
+  activeColorPicker.currentColor = currentVal;
+  activeColorPicker.shade = 50;
+
+  const titleEl = document.getElementById("colorPopoverTitle");
+  const previewDot = document.getElementById("pickerPreviewDot");
+  const slider = document.getElementById("customShadeSlider");
+  const hexInput = document.getElementById("customHexInput");
+  const chips = popover.querySelectorAll(".color-chip");
+
+  if (titleEl) titleEl.textContent = label;
+  if (previewDot) previewDot.style.backgroundColor = currentVal;
+  if (slider) {
+    slider.value = 50;
+    slider.style.background = `linear-gradient(to right, #000000 0%, ${currentVal} 50%, #ffffff 100%)`;
+  }
+  if (hexInput) hexInput.value = currentVal.replace(/^#/, "").toUpperCase();
+
+  const cleanLower = currentVal.toLowerCase();
+  chips.forEach((c) => {
+    c.classList.toggle("active", (c.dataset.color || "").toLowerCase() === cleanLower);
+  });
+
+  popover.classList.remove("hidden");
+  const rect = btn.getBoundingClientRect();
+  const popoverWidth = 340;
+  const popoverHeight = 130;
+
+  let left = rect.left;
+  if (left + popoverWidth > window.innerWidth - 12) {
+    left = window.innerWidth - popoverWidth - 12;
+  }
+  if (left < 12) left = 12;
+
+  let top = rect.bottom + 6;
+  if (top + popoverHeight > window.innerHeight - 12) {
+    top = Math.max(12, rect.top - popoverHeight - 6);
+  }
+
+  popover.style.top = `${top}px`;
+  popover.style.left = `${left}px`;
+}
+
+function applyActivePickerColor(newHex, baseColor, shadeVal) {
+  const cleanHex = normalizeHex(newHex);
+  activeColorPicker.currentColor = cleanHex;
+  if (baseColor) activeColorPicker.baseColor = normalizeHex(baseColor);
+  if (shadeVal !== undefined) activeColorPicker.shade = shadeVal;
+
+  const previewDot = document.getElementById("pickerPreviewDot");
+  const hexInput = document.getElementById("customHexInput");
+  const slider = document.getElementById("customShadeSlider");
+
+  if (previewDot) previewDot.style.backgroundColor = cleanHex;
+  if (hexInput && document.activeElement !== hexInput) {
+    hexInput.value = cleanHex.replace(/^#/, "").toUpperCase();
+  }
+  if (slider && baseColor) {
+    slider.style.background = `linear-gradient(to right, #000000 0%, ${normalizeHex(baseColor)} 50%, #ffffff 100%)`;
+    if (document.activeElement !== slider && shadeVal !== undefined) {
+      slider.value = shadeVal;
+    }
+  }
+
+  if (activeColorPicker.token) {
+    syncThemeColor(activeColorPicker.token, cleanHex);
+  } else if (activeColorPicker.inputId) {
+    const input = document.getElementById(activeColorPicker.inputId);
+    if (input) input.value = cleanHex;
+    if (activeColorPicker.activeButton) {
+      const prev = activeColorPicker.activeButton.querySelector('.swatch-preview');
+      if (prev) prev.style.backgroundColor = cleanHex;
+      const hexSpan = activeColorPicker.activeButton.querySelector('.color-hex');
+      if (hexSpan) hexSpan.textContent = cleanHex;
+    }
+    if (activeColorPicker.inputId === 'modal-cat-color') {
+      updateModalPreviewColor(cleanHex);
+    }
+  }
+}
+
+function syncThemeColor(token, value) {
+  const normVal = normalizeHex(value);
+  const input = document.getElementById('hex-theme-' + token.replace('_', '-'));
+  if (input) input.value = normVal;
+
+  const preview = document.getElementById('preview-theme-' + token.replace('_', '-'));
+  if (preview) preview.style.backgroundColor = normVal;
+
+  const label = document.getElementById('hex-label-theme-' + token.replace('_', '-'));
+  if (label) label.textContent = normVal;
+
+  currentThemeDraft[token] = normVal;
   currentThemeId = 'custom';
   document.getElementById('input-theme-name').value = 'custom';
   updateThemeBadge('custom');
@@ -1398,10 +1632,15 @@ function syncThemeColor(token, value, fromHexInput = false) {
 
 function updateThemeControlsFromDraft() {
   for (const token of ['bg', 'bg_card', 'bg_elevated', 'border', 'text', 'text_dim', 'accent']) {
-    const picker = document.getElementById('picker-theme-' + token.replace('_', '-'));
-    const hexInput = document.getElementById('hex-theme-' + token.replace('_', '-'));
-    if (picker && currentThemeDraft[token]) picker.value = currentThemeDraft[token];
-    if (hexInput && currentThemeDraft[token]) hexInput.value = currentThemeDraft[token];
+    const normVal = normalizeHex(currentThemeDraft[token]);
+    const input = document.getElementById('hex-theme-' + token.replace('_', '-'));
+    if (input) input.value = normVal;
+
+    const preview = document.getElementById('preview-theme-' + token.replace('_', '-'));
+    if (preview) preview.style.backgroundColor = normVal;
+
+    const label = document.getElementById('hex-label-theme-' + token.replace('_', '-'));
+    if (label) label.textContent = normVal;
   }
 }
 
@@ -1646,8 +1885,68 @@ async function clearServerLogs() {
   }
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+  const popover = document.getElementById("app-color-popover");
+  const cancelBtn = document.getElementById("colorPopoverCancel");
+  const doneBtn = document.getElementById("colorPopoverDone");
+  const slider = document.getElementById("customShadeSlider");
+  const hexInput = document.getElementById("customHexInput");
+
+  if (cancelBtn) cancelBtn.addEventListener("click", cancelColorPopover);
+  if (doneBtn) doneBtn.addEventListener("click", closeColorPopover);
+
+  if (popover) {
+    popover.querySelectorAll(".color-chip").forEach((chip) => {
+      chip.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const col = chip.dataset.color;
+        popover.querySelectorAll(".color-chip").forEach((c) => c.classList.remove("active"));
+        chip.classList.add("active");
+        applyActivePickerColor(col, col, 50);
+      });
+    });
+  }
+
+  if (slider) {
+    slider.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10);
+      const shaded = computeShade(activeColorPicker.baseColor, val);
+      applyActivePickerColor(shaded, activeColorPicker.baseColor, val);
+    });
+  }
+
+  if (hexInput) {
+    hexInput.addEventListener("input", (e) => {
+      let val = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6);
+      e.target.value = val.toUpperCase();
+      if (val.length === 6 || val.length === 3) {
+        const fullHex = normalizeHex("#" + val);
+        if (popover) {
+          popover.querySelectorAll(".color-chip").forEach((c) => {
+            c.classList.toggle("active", (c.dataset.color || "").toLowerCase() === fullHex.toLowerCase());
+          });
+        }
+        applyActivePickerColor(fullHex, fullHex, 50);
+      }
+    });
+  }
+
+  document.addEventListener("pointerdown", (e) => {
+    if (!popover || popover.classList.contains("hidden")) return;
+    if (popover.contains(e.target) || (activeColorPicker.activeButton && activeColorPicker.activeButton.contains(e.target))) {
+      return;
+    }
+    closeColorPopover();
+  });
+});
+
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
+    const popover = document.getElementById("app-color-popover");
+    if (popover && !popover.classList.contains("hidden")) {
+      closeColorPopover();
+      return;
+    }
     const logsModal = document.getElementById('logs-modal');
     if (logsModal && logsModal.style.display !== 'none') {
       closeLogsModal();
