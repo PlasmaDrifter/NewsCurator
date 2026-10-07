@@ -26,7 +26,7 @@ except Exception:
 def get_local_now_str() -> str:
     return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
-APP_VERSION = "v0.8.2"
+APP_VERSION = "v0.8.3"
 GITHUB_REPO = "PlasmaDrifter/NewsCurator"
 
 UPDATE_CACHE = {

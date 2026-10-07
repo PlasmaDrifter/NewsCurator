@@ -254,9 +254,9 @@
             </div>
             <div class="setting-item-desc">
               {% if check_for_updates %}
-                Automatically check GitHub releases (Current: {{ app_version|default('v0.8.2') }})
+                Automatically check GitHub releases (Current: {{ app_version|default('v0.8.3') }})
               {% else %}
-                Update checks disabled (Current: {{ app_version|default('v0.8.2') }})
+                Update checks disabled (Current: {{ app_version|default('v0.8.3') }})
               {% endif %}
             </div>
           </div>
@@ -1551,10 +1551,11 @@ function openColorPopover(btn, event) {
 
   popover.classList.remove("hidden");
   const rect = btn.getBoundingClientRect();
-  const popoverWidth = 340;
-  const popoverHeight = 130;
+  const popoverWidth = popover.offsetWidth || 340;
+  const popoverHeight = popover.offsetHeight || 130;
 
-  let left = rect.left;
+  // Center horizontally relative to the button
+  let left = rect.left + (rect.width / 2) - (popoverWidth / 2);
   if (left + popoverWidth > window.innerWidth - 12) {
     left = window.innerWidth - popoverWidth - 12;
   }
