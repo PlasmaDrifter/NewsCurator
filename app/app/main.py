@@ -9,6 +9,7 @@ import hashlib
 import json
 import socket
 import urllib.request
+from urllib.parse import urlsplit, urlunsplit
 import collections
 import subprocess
 import tarfile
@@ -18,6 +19,28 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
+def safe_redirect_url(target: str, default: str = "/") -> str:
+    """
+    Ensure redirect target is a safe relative path to prevent open redirect vulnerabilities.
+    Rejects targets with scheme (http://, https://), netloc (//evil.com), or backslashes.
+    """
+    if not target or not isinstance(target, str):
+        return default
+    target = target.strip()
+    if not target.startswith("/") or target.startswith("//") or "\\" in target:
+        return default
+    try:
+        parts = urlsplit(target)
+        if parts.scheme or parts.netloc:
+            return default
+        path = parts.path or "/"
+        if not path.startswith("/") or path.startswith("//") or "\\" in path:
+            return default
+        clean_url = urlunsplit(("", "", path, parts.query, parts.fragment))
+        return clean_url or default
+    except Exception:
+        return default
+
 try:
     LOCAL_TZ = ZoneInfo(os.environ.get("APP_TIMEZONE", os.environ.get("TZ", "America/Phoenix")))
 except Exception:
@@ -26,7 +49,7 @@ except Exception:
 def get_local_now_str() -> str:
     return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
-APP_VERSION = "v0.8.3"
+APP_VERSION = "v0.8.4"
 GITHUB_REPO = "PlasmaDrifter/NewsCurator"
 
 UPDATE_CACHE = {
@@ -696,6 +719,7 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('anim_cascade', '1')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enable_unread_filter', '1')")
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('unread_icon_only', '0')")
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('card_compact', '0')")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -1074,6 +1098,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = int(get_setting(conn, "step_scroll_rows", "3"))
         anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
+        card_compact = get_setting(conn, "card_compact", "0") == "1"
         show_github_btn = get_setting(conn, "show_github_btn", "1") == "1"
         check_for_updates = get_setting(conn, "check_for_updates", "1") == "1"
         update_info = check_github_update(force=False, enabled=check_for_updates)
@@ -1099,6 +1124,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "open_in_new_tab": open_in_new_tab,
         "step_scroll_rows": step_scroll_rows,
         "anim_cascade": anim_cascade,
+        "card_compact": card_compact,
         "show_github_btn": show_github_btn,
         "check_for_updates": check_for_updates,
         "app_version": APP_VERSION,
@@ -1350,7 +1376,7 @@ async def set_status(request: Request, article_id: int):
 
     accept = request.headers.get("accept", "")
     if "text/html" in accept and "application/json" not in accept and request.headers.get("sec-fetch-dest") == "document":
-        return RedirectResponse(redirect_to, status_code=303)
+        return RedirectResponse(safe_redirect_url(redirect_to, default="/"), status_code=303)
     return JSONResponse({"success": True, "status": status})
 
 
@@ -1369,7 +1395,7 @@ def toggle_status(article_id: int):
 def manual_refresh(redirect_to: str = Form("/")):
     print("Manual feed refresh triggered by user", flush=True)
     refresh_all_feeds()
-    return RedirectResponse(redirect_to, status_code=303)
+    return RedirectResponse(safe_redirect_url(redirect_to, default="/"), status_code=303)
 
 
 @app.post("/feeds/add")
@@ -1473,6 +1499,7 @@ def feeds_page(request: Request):
         open_in_new_tab = get_setting(conn, "open_in_new_tab", "1") == "1"
         step_scroll_rows = get_setting(conn, "step_scroll_rows", "3")
         anim_cascade = get_setting(conn, "anim_cascade", "1") == "1"
+        card_compact = get_setting(conn, "card_compact", "0") == "1"
         enable_unread_filter = get_setting(conn, "enable_unread_filter", "1") == "1"
         unread_icon_only = get_setting(conn, "unread_icon_only", "0") == "1"
         show_github_btn = get_setting(conn, "show_github_btn", "1") == "1"
@@ -1501,6 +1528,7 @@ def feeds_page(request: Request):
         "open_in_new_tab": open_in_new_tab,
         "step_scroll_rows": step_scroll_rows,
         "anim_cascade": anim_cascade,
+        "card_compact": card_compact,
         "enable_unread_filter": enable_unread_filter,
         "unread_icon_only": unread_icon_only,
         "show_github_btn": show_github_btn,
@@ -1628,7 +1656,7 @@ async def update_scroll(request: Request):
     step_scroll_rows = form.get("step_scroll_rows", "3")
     with closing(get_db()) as conn, conn:
         set_setting(conn, "three_row_scroll", three_row_scroll)
-        if step_scroll_rows in ["3", "4"]:
+        if step_scroll_rows in ["3", "4", "5"]:
             set_setting(conn, "step_scroll_rows", step_scroll_rows)
     return RedirectResponse("/feeds", status_code=303)
 
@@ -1648,6 +1676,15 @@ async def update_anim_cascade(request: Request):
     anim_cascade = "1" if "anim_cascade" in form else "0"
     with closing(get_db()) as conn, conn:
         set_setting(conn, "anim_cascade", anim_cascade)
+    return RedirectResponse("/feeds", status_code=303)
+
+
+@app.post("/settings/update-card-compact")
+async def update_card_compact(request: Request):
+    form = await request.form()
+    card_compact = "1" if "card_compact" in form else "0"
+    with closing(get_db()) as conn, conn:
+        set_setting(conn, "card_compact", card_compact)
     return RedirectResponse("/feeds", status_code=303)
 
 
