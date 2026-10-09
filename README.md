@@ -209,3 +209,4 @@ Created and maintained by [PlasmaDrifter](https://github.com/PlasmaDrifter). Dis
 Got questions, setup ideas, or feedback?
 
 * 🌐 Join our subreddit at [**r/PlasmaDrifterProjects**](https://reddit.com/r/PlasmaDrifterProjects) to discuss updates, get support, and share configurations.
+* Contact directly via email at [**plasmadrifter121@gmail.com**](mailto:plasmadrifter121@gmail.com).
