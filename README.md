@@ -174,7 +174,7 @@ The application uses SQLite with four core tables:
 
 ## License
 
-Created and maintained by [PlasmaDrifter](https://github.com/PlasmaDrifter). Distributed for personal and self-hosted use.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
