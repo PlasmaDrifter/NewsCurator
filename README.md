@@ -105,11 +105,21 @@ cd NewsCurator
 ./install.sh
 ```
 
+The installer allows you to choose between two installation modes:
+1. **Podman Quadlet (Default)**: Containerized, rootless service isolated from the host Python environment.
+   ```bash
+   ./install.sh podman
+   ```
+2. **Native Python**: Uses a local Python virtual environment (`.venv`) and a user systemd service without needing Podman or container runtimes.
+   ```bash
+   ./install.sh native
+   ```
+
 The installer automatically:
-- Builds the local `localhost/newscurator:latest` Podman container image.
-- Sets up `~/.config/containers/systemd/newscurator.container` with dynamic path bindings.
+- Sets up the service (builds the container image or creates the virtualenv with dependencies).
+- Installs the systemd user service (`newscurator.service`).
 - Installs the application icon and a desktop launcher menu entry.
-- Reloads `systemd --user` and starts the `newscurator.service`.
+- Reloads `systemd --user` and starts `newscurator.service`.
 
 To uninstall:
 ```bash
@@ -195,6 +205,20 @@ WantedBy=default.target
    # Verify running status
    systemctl --user status newscurator.service
    ```
+
+---
+
+### 3. Alternative: Run Natively via Python Virtual Environment
+
+If you prefer running natively without containers:
+
+```bash
+cd app
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 5006
+```
 
 ---
 
