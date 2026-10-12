@@ -1,14 +1,14 @@
 # News Curator
 
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Podman](https://img.shields.io/badge/Podman-Quadlet-892CA0?logo=podman&logoColor=white)](https://podman.io)
 [![SQLite](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![Jinja2](https://img.shields.io/badge/Templates-Jinja2-B41717?logo=jinja&logoColor=white)](https://palletsprojects.com/p/jinja/)
+[![systemd](https://img.shields.io/badge/systemd-user%20service-CC2200?logo=linux&logoColor=white)](https://systemd.io)
 
-A fast, self-hosted, dark-themed **RSS news aggregator** dashboard built with **FastAPI**, **Jinja2**, and **SQLite**, running as a rootless **Podman Quadlet** container service.
+A fast, self-hosted, dark-themed **RSS news aggregator** dashboard built with **FastAPI**, **Jinja2**, and **SQLite**, running as a native systemd user service.
 
-This repository contains the complete web application source code, container definition, systemd Quadlet configuration, and application screenshots.
+This repository contains the complete web application source code, desktop integration launcher, installation scripts, and screenshots.
 
 ---
 
@@ -49,7 +49,7 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 - **Customizable Website Favicon**
 - **Category Drag-and-Drop Reordering & Modal Editor**
 - **Private & Lightweight**
-- **Systemd Quadlet Integration**
+- **Systemd User Service Integration**
 
 ---
 
@@ -58,15 +58,15 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 ```text
 NewsCurator/
 ├── README.md                      # Documentation & overview
-├── install.sh                     # Automated installer (Podman build, Quadlet & desktop setup)
-├── uninstall.sh                   # Uninstaller (stops service, removes container & Quadlet)
-├── newscurator.container          # Podman Quadlet systemd container definition
-├── .gitignore                     # Git ignore rules for python cache & artifacts
+├── install.sh                     # Automated installer (venv, dependencies, systemd & desktop setup)
+├── uninstall.sh                   # Uninstaller (stops & removes systemd service, desktop launcher)
+├── .gitignore                     # Git ignore rules for python cache, venv & artifacts
 ├── app/                           # FastAPI Application Source Code
-│   ├── Containerfile              # Podman/Docker image build definition
 │   ├── requirements.txt           # Python dependencies
 │   ├── app/
 │   │   └── main.py                # FastAPI backend routes, background feed parser, DB models, API
+│   ├── data/                      # Persistent SQLite database directory
+│   │   └── news.db                # SQLite database snapshot (feeds, articles, categories, settings)
 │   ├── static/
 │   │   ├── favicons/              # Preset website favicon SVG assets
 │   │   └── style.css              # Custom dark-theme styling, grid & table CSS, animations
@@ -74,8 +74,8 @@ NewsCurator/
 │       ├── base.html              # Base Jinja2 layout, centered search box, and navigation bar
 │       ├── feeds.html             # Manage Sources, Retention & Settings configuration UI
 │       └── index.html             # News feed dashboard with dynamic infinite scroll
-├── newscurator-data/              # Data persistence mount
-│   └── news.db                    # SQLite database snapshot (feeds, articles, categories, settings)
+├── newscurator-data/              # Database backup reference
+│   └── news.db                    # SQLite database snapshot
 └── screenshots/                   # Application screenshots
     ├── grid-view.png              # News dashboard in Card Grid view
     ├── table-view.png             # News dashboard in Table view
@@ -86,10 +86,10 @@ NewsCurator/
 
 ## Tech Stack & Requirements
 
-- **Backend**: Python 3.12, FastAPI, Uvicorn, Feedparser, Jinja2
+- **Backend**: Python 3.12+ (or 3.14+), FastAPI, Uvicorn, Feedparser, Jinja2
 - **Database**: SQLite 3 (WAL mode)
 - **Frontend**: Vanilla JavaScript (`IntersectionObserver`), Modern CSS3 with CSS variables (Dark Catppuccin-inspired theme)
-- **Container Runtime**: Podman (rootless) + systemd Quadlets
+- **Service Management**: systemd user service (`newscurator.service`)
 
 ---
 
@@ -105,21 +105,14 @@ cd NewsCurator
 ./install.sh
 ```
 
-The installer allows you to choose between two installation modes:
-1. **Podman Quadlet (Default)**: Containerized, rootless service isolated from the host Python environment.
-   ```bash
-   ./install.sh podman
-   ```
-2. **Native Python**: Uses a local Python virtual environment (`.venv`) and a user systemd service without needing Podman or container runtimes.
-   ```bash
-   ./install.sh native
-   ```
-
 The installer automatically:
-- Sets up the service (builds the container image or creates the virtualenv with dependencies).
-- Installs the systemd user service (`newscurator.service`).
-- Installs the application icon and a desktop launcher menu entry.
+- Creates a dedicated Python virtual environment (`app/.venv`).
+- Installs all dependencies from `requirements.txt`.
+- Configures and enables a user systemd service (`~/.config/systemd/user/newscurator.service`).
+- Installs the application icon and desktop launcher menu entry.
 - Reloads `systemd --user` and starts `newscurator.service`.
+
+The web dashboard will be available at: **`http://localhost:5006`**
 
 To uninstall:
 ```bash
@@ -128,118 +121,43 @@ To uninstall:
 
 ---
 
-### 2. Manual Installation & Deployment
+### 2. Manual Installation & Running Directly
 
-If you prefer setting up the directory structure and Quadlet manually:
-
-#### A. Host Directory Layout
-
-Choose a directory location on your host machine (for example, inside your home directory `~/newscurator` or `/opt/newscurator`):
+If you prefer installing and managing the application manually:
 
 ```bash
-# Set your preferred installation directory
-export NEWSCURATOR_DIR="$HOME/newscurator"
+# Clone the repository
+git clone https://github.com/PlasmaDrifter/NewsCurator.git
+cd NewsCurator/app
 
-# Create application and persistent database directories
-mkdir -p "$NEWSCURATOR_DIR/app/data"
-```
-
-Copy the repository `app/` files into `$NEWSCURATOR_DIR/app/` and place your `news.db` database into `$NEWSCURATOR_DIR/app/data/news.db`.
-
----
-
-#### B. Build the Podman Image
-
-Build the container image locally:
-
-```bash
-cd "$NEWSCURATOR_DIR/app"
-podman build -t localhost/newscurator:latest -f Containerfile .
-```
-
----
-
-#### C. Deploy with Podman Quadlet
-
-Systemd Quadlets automatically manage rootless Podman containers as system services.
-
-1. Ensure your user Quadlet directory exists:
-   ```bash
-   mkdir -p ~/.config/containers/systemd/
-   ```
-
-2. Copy or create `newscurator.container` in `~/.config/containers/systemd/newscurator.container`.
-
-**Quadlet Definition (`~/.config/containers/systemd/newscurator.container`)**:
-```ini
-[Unit]
-Description=News Curator
-After=network-online.target
-
-[Container]
-Image=localhost/newscurator:latest
-ContainerName=newscurator
-PublishPort=5006:5006
-Volume=%h/newscurator/app:/app:Z
-Volume=%h/newscurator/app/data:/app/data:Z
-AutoUpdate=local
-
-[Service]
-Restart=on-failure
-
-[Install]
-WantedBy=default.target
-```
-
-*(Note: `%h` is a standard systemd specifier that automatically expands to the current user's home directory. Adjust `%h/newscurator/app` if you placed the files in a custom directory).*
-
-3. Reload systemd and start the service:
-   ```bash
-   # Reload systemd daemon to generate the Quadlet container service
-   systemctl --user daemon-reload
-
-   # Start and enable the service
-   systemctl --user start newscurator.service
-   systemctl --user enable newscurator.service
-
-   # Verify running status
-   systemctl --user status newscurator.service
-   ```
-
----
-
-### 3. Alternative: Run Natively via Python Virtual Environment
-
-If you prefer running natively without containers:
-
-```bash
-cd app
+# Create virtual environment and install dependencies
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# Run the application
 uvicorn app.main:app --host 0.0.0.0 --port 5006
 ```
 
 ---
 
-### 4. Alternative: Run Directly via Podman CLI
+### 3. Managing the Systemd Service
 
-If you prefer launching directly with the Podman CLI:
+When installed with `./install.sh`, the service runs as a systemd user unit:
 
 ```bash
-export NEWSCURATOR_DIR="$HOME/newscurator"
+# Check service status
+systemctl --user status newscurator.service
 
-podman run -d \
-  --name newscurator \
-  --replace \
-  --restart on-failure \
-  -p 5006:5006 \
-  -v "$NEWSCURATOR_DIR/app:/app:Z" \
-  -v "$NEWSCURATOR_DIR/app/data:/app/data:Z" \
-  localhost/newscurator:latest
+# View live application logs
+journalctl --user -u newscurator.service -f
+
+# Restart the service
+systemctl --user restart newscurator.service
+
+# Stop the service
+systemctl --user stop newscurator.service
 ```
-
-The web dashboard will be available at: **`http://localhost:5006`** (or `http://<server-ip>:5006`).
 
 ---
 
@@ -260,9 +178,10 @@ Created and maintained by [PlasmaDrifter](https://github.com/PlasmaDrifter). Dis
 
 ---
 
-## 💬 Community & Discussions
+## Community & Discussions
 
 Got questions, setup ideas, or feedback?
 
-* 🌐 Join our subreddit at [**r/PlasmaDrifterProjects**](https://reddit.com/r/PlasmaDrifterProjects) to discuss updates, get support, and share configurations.
+* Join our subreddit at [**r/PlasmaDrifterProjects**](https://reddit.com/r/PlasmaDrifterProjects) to discuss updates, get support, and share configurations.
 * Contact directly via email at [**plasmadrifter121@gmail.com**](mailto:plasmadrifter121@gmail.com).
+

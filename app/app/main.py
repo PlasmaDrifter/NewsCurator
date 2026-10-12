@@ -1325,7 +1325,7 @@ def trigger_server_restart():
         try:
             os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception as e:
-            print(f"[{get_local_now_str()}] In-process restart error: {e}. Exiting for container restart...", flush=True)
+            print(f"[{get_local_now_str()}] In-process restart error: {e}. Exiting for service restart...", flush=True)
             sys.exit(0)
 
     t = threading.Thread(target=_restart, daemon=True)
