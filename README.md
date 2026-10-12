@@ -58,6 +58,8 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 ```text
 NewsCurator/
 ├── README.md                      # Documentation & overview
+├── install.sh                     # Automated installer (Podman build, Quadlet & desktop setup)
+├── uninstall.sh                   # Uninstaller (stops service, removes container & Quadlet)
 ├── newscurator.container          # Podman Quadlet systemd container definition
 ├── .gitignore                     # Git ignore rules for python cache & artifacts
 ├── app/                           # FastAPI Application Source Code
@@ -93,7 +95,34 @@ NewsCurator/
 
 ## Quickstart & Deployment
 
-### 1. Host Directory Layout
+### 1. Automated Installation (Recommended)
+
+Clone the repository and run the installer script:
+
+```bash
+git clone https://github.com/PlasmaDrifter/NewsCurator.git
+cd NewsCurator
+./install.sh
+```
+
+The installer automatically:
+- Builds the local `localhost/newscurator:latest` Podman container image.
+- Sets up `~/.config/containers/systemd/newscurator.container` with dynamic path bindings.
+- Installs the application icon and a desktop launcher menu entry.
+- Reloads `systemd --user` and starts the `newscurator.service`.
+
+To uninstall:
+```bash
+./uninstall.sh
+```
+
+---
+
+### 2. Manual Installation & Deployment
+
+If you prefer setting up the directory structure and Quadlet manually:
+
+#### A. Host Directory Layout
 
 Choose a directory location on your host machine (for example, inside your home directory `~/newscurator` or `/opt/newscurator`):
 
@@ -109,7 +138,7 @@ Copy the repository `app/` files into `$NEWSCURATOR_DIR/app/` and place your `ne
 
 ---
 
-### 2. Build the Podman Image
+#### B. Build the Podman Image
 
 Build the container image locally:
 
@@ -120,7 +149,7 @@ podman build -t localhost/newscurator:latest -f Containerfile .
 
 ---
 
-### 3. Deploy with Podman Quadlet (Recommended)
+#### C. Deploy with Podman Quadlet
 
 Systemd Quadlets automatically manage rootless Podman containers as system services.
 
