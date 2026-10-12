@@ -31,9 +31,11 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 ## Features
 
 - **Dual Viewing Modes (Grid & Table)**
+- **Compact Card Mode (3-Line Summary)**
+- **Full Theme Customizer with In-App Bidirectional Shade Color Picker**
 - **Unread Articles Filter & One-Click Mark All Read**
 - **Feed Health & Sync Monitoring (Healthy, Idle, Error, Disabled)**
-- **Balanced 3-Column Settings Dashboard with Pinwheel Color Picker**
+- **Balanced 3-Column Settings Dashboard**
 - **Dynamic Category Styling & Custom Borders**
 - **Feed Aggregation & Background Polling**
 - **Comprehensive Feed & Category Management**
@@ -41,6 +43,7 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 - **Article Bookmarking & Dedicated Saved View**
 - **Integrated Top Bar Search**
 - **Dynamic Infinite Scrolling**
+- **Configurable Step Scrolling (3, 4, or 5 Rows)**
 - **Configurable Refresh Interval (15, 30, 60 Min or Custom)**
 - **Configurable Data Retention (7, 14, 30 Days)**
 - **Customizable Website Favicon**
@@ -194,7 +197,7 @@ The application uses SQLite with four core tables:
 - **`feeds`**: Registered RSS feed URLs, feed names, category associations, enabled state, and `last_fetched` ISO timestamps.
 - **`articles`**: Ingested articles (`guid`, `title`, `link`, `summary`, `image_url`, `published`, `fetched_at`, `status`, `is_bookmarked`).
 - **`categories`**: Category names and their custom HEX color codes.
-- **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`, `retention_days`, `refresh_interval`).
+- **`settings`**: User configuration key-value pairs (`colored_borders`, `border_opacity`, `border_size`, `step_scroll_rows`, `card_compact`, `retention_days`, `refresh_interval`, `open_in_new_tab`, etc.).
 
 ---
 
