@@ -8,7 +8,7 @@
 
 A fast, self-hosted, dark-themed **RSS news aggregator** dashboard built with **FastAPI**, **Jinja2**, and **SQLite**, running as a native systemd user service.
 
-This repository contains the complete web application source code, desktop integration launcher, installation scripts, and screenshots.
+This repository contains the complete web application source code, desktop integration launcher, installation scripts.
 
 ---
 
