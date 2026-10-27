@@ -41,6 +41,7 @@ Source management dashboard for adding RSS feeds, toggling feeds on/off, creatin
 - **Comprehensive Feed & Category Management**
 - **Full-Card Direct Navigation & Read Tracking**
 - **Article Bookmarking & Dedicated Saved View**
+- **Reading History Timeline & Recently Viewed View**
 - **Integrated Top Bar Search**
 - **Dynamic Infinite Scrolling**
 - **Configurable Step Scrolling (3, 4, or 5 Rows)**

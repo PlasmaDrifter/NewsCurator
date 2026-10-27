@@ -47,12 +47,12 @@
 <div class="controls">
   <div class="cat-buttons" style="position: relative;">
     <div class="cat-sliding-pill" id="cat-sliding-pill" aria-hidden="true" style="position: absolute; top: 0; left: 0; pointer-events: none; height: 28px; border-radius: 6px; z-index: 1; opacity: 0; box-sizing: border-box;"></div>
-    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}"
+    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
        class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}"
        data-cat="all"
        onclick="selectCategory('all', this, event)">All</a>
     {% for c in categories %}
-    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}"
+    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
        class="cat-btn cat-btn-{{ c.name|css_class }} {% if current_category == c.name %}active{% endif %}"
        data-cat="{{ c.name }}"
        onclick="selectCategory('{{ c.name|e }}', this, event)">{{ c.name }}</a>
@@ -61,7 +61,7 @@
 
   <div class="right-controls">
     {% if enable_unread_filter %}
-    <a href="/?category={{ current_category }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if not is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}"
+    <a href="/?category={{ current_category }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if not is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
        class="unread-filter-btn {% if is_unread_view %}active{% endif %} {% if unread_icon_only %}icon-only{% endif %}"
        title="{% if is_unread_view %}Showing unread only (click to show all){% else %}Filter to unread articles{% endif %}">
       <span class="unread-icon">◎</span>{% if not unread_icon_only %} <span class="unread-label">Unread</span>{% endif %}
@@ -72,7 +72,7 @@
     </button>
     {% endif %}
 
-    <select name="source" onchange="window.location='/?category={{ current_category }}&q={{ search_query }}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}&source='+this.value">
+    <select name="source" onchange="window.location='/?category={{ current_category }}&q={{ search_query }}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}&source='+this.value">
       <option value="all" {% if current_source == "all" %}selected{% endif %}>All sources</option>
       {% for f in feeds %}
       <option value="{{ f.id }}" {% if current_source == f.id|string %}selected{% endif %}>{{ f.name }}</option>
@@ -81,7 +81,7 @@
   </div>
 </div>
 
-<div class="card-grid {% if is_bookmarked_view %}bookmarked-view{% endif %}">
+<div class="card-grid {% if is_bookmarked_view %}bookmarked-view{% endif %} {% if is_history_view %}history-view{% endif %}">
   {% for a in articles %}
   <article id="article-card-{{ a.id }}" class="card {% if a.status == 'read' %}read{% endif %}"
     data-link="{{ a.link }}" data-id="{{ a.id }}"
@@ -108,12 +108,24 @@
       {% if a.summary %}<p class="card-summary">{{ a.summary }}</p>{% endif %}
       <div class="card-footer">
         <span class="card-domain">{{ a.link | extract_domain }}</span>
+        {% if is_history_view and a.read_at %}
+        <span class="card-read-time" title="Read at {{ a.read_at }}">Seen {{ a.read_at | format_time_ago }}</span>
+        {% else %}
         <span class="card-added-time">{{ a.fetched_at | format_fetched_minutes }}</span>
+        {% endif %}
       </div>
     </div>
   </article>
   {% else %}
-  <p class="empty-state">No articles found. Try refreshing, clearing search, or changing filters.</p>
+  <p class="empty-state">
+    {% if is_history_view %}
+      No reading history yet. Articles you open or read will appear here.
+    {% elif is_bookmarked_view %}
+      No bookmarked articles found.
+    {% else %}
+      No articles found. Try refreshing, clearing search, or changing filters.
+    {% endif %}
+  </p>
   {% endfor %}
 </div>
 
@@ -131,6 +143,7 @@ let currentCategory = {{ current_category | tojson }};
 const currentSource = {{ current_source | tojson }};
 const searchQuery = {{ search_query | tojson }};
 const isBookmarkedView = {{ is_bookmarked_view | tojson }};
+const isHistoryView = {{ is_history_view | tojson }};
 const isUnreadView = {{ is_unread_view | tojson }};
 const coloredBorders = {{ colored_borders | tojson }};
 const borderOpacity = {{ border_opacity | tojson }};
@@ -383,7 +396,7 @@ function renderArticleCard(a, idx) {
       ${a.summary ? `<p class="card-summary">${escapeHtml(a.summary)}</p>` : ''}
       <div class="card-footer">
         <span class="card-domain">${escapeHtml(a.domain)}</span>
-        <span class="card-added-time">${escapeHtml(a.fetched_at_minutes)}</span>
+        ${isHistoryView && a.read_at_ago ? `<span class="card-read-time" title="Read at ${escapeHtml(a.read_at || '')}">Seen ${escapeHtml(a.read_at_ago)}</span>` : `<span class="card-added-time">${escapeHtml(a.fetched_at_minutes)}</span>`}
       </div>
     </div>
   `;
@@ -402,6 +415,7 @@ async function loadMoreArticles() {
       source: currentSource,
       q: searchQuery,
       bookmarked: isBookmarkedView ? 1 : 0,
+      history: isHistoryView ? 1 : 0,
       unread: isUnreadView ? 1 : 0,
       offset: currentOffset,
       limit: 60
@@ -548,11 +562,11 @@ async function selectCategory(catName, btn, event) {
   }
   const sourceSelect = document.querySelector('select[name="source"]');
   if (sourceSelect) {
-    sourceSelect.setAttribute('onchange', `window.location='/?category=${encodeURIComponent(catName)}&q=${encodeURIComponent(searchQuery || '')}${isUnreadView ? '&unread=1' : ''}${isBookmarkedView ? '&bookmarked=1' : ''}&source='+this.value`);
+    sourceSelect.setAttribute('onchange', `window.location='/?category=${encodeURIComponent(catName)}&q=${encodeURIComponent(searchQuery || '')}${isUnreadView ? '&unread=1' : ''}${isBookmarkedView ? '&bookmarked=1' : ''}${isHistoryView ? '&history=1' : ''}&source='+this.value`);
   }
   const refreshInput = document.querySelector('input[name="redirect_to"]');
   if (refreshInput) {
-    refreshInput.value = `/?category=${encodeURIComponent(catName)}&source=${encodeURIComponent(currentSource || 'all')}&q=${encodeURIComponent(searchQuery || '')}${isUnreadView ? '&unread=1' : ''}${isBookmarkedView ? '&bookmarked=1' : ''}`;
+    refreshInput.value = `/?category=${encodeURIComponent(catName)}&source=${encodeURIComponent(currentSource || 'all')}&q=${encodeURIComponent(searchQuery || '')}${isUnreadView ? '&unread=1' : ''}${isBookmarkedView ? '&bookmarked=1' : ''}${isHistoryView ? '&history=1' : ''}`;
   }
 
   isLoading = true;
@@ -566,6 +580,7 @@ async function selectCategory(catName, btn, event) {
       source: currentSource,
       q: searchQuery,
       bookmarked: isBookmarkedView ? 1 : 0,
+      history: isHistoryView ? 1 : 0,
       unread: isUnreadView ? 1 : 0,
       offset: 0,
       limit: 60
@@ -582,7 +597,7 @@ async function selectCategory(catName, btn, event) {
           grid.appendChild(card);
         });
       } else {
-        grid.innerHTML = '<p class="empty-state">No articles found. Try refreshing, clearing search, or changing filters.</p>';
+        grid.innerHTML = `<p class="empty-state">${isHistoryView ? 'No reading history yet. Articles you open or read will appear here.' : isBookmarkedView ? 'No bookmarked articles found.' : 'No articles found. Try refreshing, clearing search, or changing filters.'}</p>`;
       }
     }
 

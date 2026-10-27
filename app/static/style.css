@@ -634,11 +634,15 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   opacity: 0.85;
 }
 
-/* Bookmarks listing view: no transparency */
+/* Bookmarks and History listing view: no transparency */
 .card-grid.bookmarked-view .card,
 .card-grid.bookmarked-view .card.read,
 .card-grid.bookmarked-view .card.read .card-meta,
-.card-grid.bookmarked-view .card.read .card-body {
+.card-grid.bookmarked-view .card.read .card-body,
+.card-grid.history-view .card,
+.card-grid.history-view .card.read,
+.card-grid.history-view .card.read .card-meta,
+.card-grid.history-view .card.read .card-body {
   opacity: 1 !important;
 }
 
@@ -1607,6 +1611,46 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .topbar-bookmark-btn .bookmark-tag-icon {
   display: inline-block;
   line-height: 1;
+}
+
+.topbar-history-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0 4px;
+  height: 28px;
+  box-sizing: border-box;
+  color: var(--text-dim);
+  text-decoration: none !important;
+  cursor: pointer;
+  opacity: 0.90;
+  transition: transform 0.15s ease, color 0.2s ease, opacity 0.15s ease, filter 0.2s ease;
+}
+
+.topbar-history-btn:hover {
+  opacity: 1;
+  color: var(--text);
+  transform: scale(1.18);
+}
+
+.topbar-history-btn.active {
+  opacity: 1;
+  color: var(--accent);
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+
+.topbar-history-btn .history-clock-icon {
+  display: block;
+}
+
+.card-read-time {
+  font-size: 0.72rem;
+  color: var(--accent);
+  opacity: 0.9;
+  white-space: nowrap;
 }
 
 /* --- DYNAMIC INFINITE SCROLL LOADER --- */

@@ -309,6 +309,8 @@ def format_time_ago(iso_str):
         return "never"
     try:
         dt = datetime.fromisoformat(iso_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
         diff = now - dt
         seconds = diff.total_seconds()
@@ -803,9 +805,14 @@ def init_db():
             conn.execute("ALTER TABLE articles ADD COLUMN content TEXT")
         except Exception:
             pass
+        try:
+            conn.execute("ALTER TABLE articles ADD COLUMN read_at TEXT")
+        except Exception:
+            pass
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_bookmarked ON articles(is_bookmarked)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at)")
 
         # Migration: abbreviate Google News to G.News
         try:
@@ -968,8 +975,9 @@ def cleanup_old_articles(days=None):
         cursor = conn.execute(
             """DELETE FROM articles 
                WHERE datetime(fetched_at) < datetime('now', '-' || ? || ' days')
+               AND (read_at IS NULL OR datetime(read_at) < datetime('now', '-' || ? || ' days'))
                AND (is_bookmarked = 0 OR is_bookmarked IS NULL)""",
-            (days,)
+            (days, days)
         )
         deleted = cursor.rowcount
         if deleted > 0:
@@ -1040,11 +1048,13 @@ def startup():
     t.start()
 
 
-def query_articles(conn, category="all", source="all", q="", bookmarked=False, unread_only=False, offset=0, limit=60):
+def query_articles(conn, category="all", source="all", q="", bookmarked=False, unread_only=False, history=False, offset=0, limit=60):
     params = []
     where_clauses = ["1=1"]
 
-    if bookmarked:
+    if history:
+        where_clauses.append("articles.read_at IS NOT NULL")
+    elif bookmarked:
         where_clauses.append("articles.is_bookmarked = 1")
     if unread_only:
         where_clauses.append("articles.status = 'unread'")
@@ -1060,6 +1070,7 @@ def query_articles(conn, category="all", source="all", q="", bookmarked=False, u
         params.extend([search_term, search_term])
 
     where_sql = " AND ".join(where_clauses)
+    order_clause = "articles.read_at DESC" if history else "articles.fetched_at DESC"
 
     query = f"""
         SELECT articles.*, feeds.name as feed_name, feeds.category as feed_category, COALESCE(categories.color, '#888888') as category_color
@@ -1067,7 +1078,7 @@ def query_articles(conn, category="all", source="all", q="", bookmarked=False, u
         JOIN feeds ON articles.feed_id = feeds.id
         LEFT JOIN categories ON LOWER(feeds.category) = LOWER(categories.name)
         WHERE {where_sql}
-        ORDER BY articles.fetched_at DESC
+        ORDER BY {order_clause}
         LIMIT ? OFFSET ?
     """
     params.extend([limit + 1, offset])
@@ -1079,7 +1090,7 @@ def query_articles(conn, category="all", source="all", q="", bookmarked=False, u
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request, category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, unread: int = 0):
+def index(request: Request, category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, history: int = 0, unread: int = 0):
     with closing(get_db()) as conn:
         enable_unread_filter = get_setting(conn, "enable_unread_filter", "1") == "1"
         unread_icon_only = get_setting(conn, "unread_icon_only", "0") == "1"
@@ -1087,6 +1098,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         articles, has_more = query_articles(
             conn, category=category, source=source, q=q,
             bookmarked=bool(bookmarked), unread_only=is_unread_view,
+            history=bool(history),
             offset=0, limit=60
         )
         feeds = conn.execute("SELECT * FROM feeds ORDER BY category, name").fetchall()
@@ -1114,6 +1126,7 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "current_category": category,
         "current_source": source,
         "is_bookmarked_view": bool(bookmarked),
+        "is_history_view": bool(history),
         "is_unread_view": is_unread_view,
         "enable_unread_filter": enable_unread_filter,
         "unread_icon_only": unread_icon_only,
@@ -1135,16 +1148,18 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
 
 
 @app.get("/api/articles")
-def api_articles(category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, unread: int = 0, offset: int = 0, limit: int = 60):
+def api_articles(category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, history: int = 0, unread: int = 0, offset: int = 0, limit: int = 60):
     with closing(get_db()) as conn:
         rows, has_more = query_articles(
             conn, category=category, source=source, q=q,
             bookmarked=bool(bookmarked), unread_only=bool(unread),
+            history=bool(history),
             offset=offset, limit=limit
         )
         border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
         items = []
         for r in rows:
+            read_at_val = r["read_at"] if "read_at" in r.keys() else None
             items.append({
                 "id": r["id"],
                 "title": r["title"],
@@ -1161,6 +1176,8 @@ def api_articles(category: str = "all", source: str = "all", q: str = "", bookma
                 "category_border_color": hex_to_rgba(r["category_color"] or "#888888", border_opacity),
                 "status": r["status"],
                 "is_bookmarked": bool(r["is_bookmarked"]),
+                "read_at": read_at_val,
+                "read_at_ago": format_time_ago(read_at_val) if read_at_val else "",
             })
     return JSONResponse({
         "articles": items,
@@ -1372,7 +1389,11 @@ async def set_status(request: Request, article_id: int):
             pass
 
     with closing(get_db()) as conn, conn:
-        conn.execute("UPDATE articles SET status = ? WHERE id = ?", (status, article_id))
+        if status == "read":
+            now_str = datetime.now(timezone.utc).isoformat()
+            conn.execute("UPDATE articles SET status = ?, read_at = ? WHERE id = ?", (status, now_str, article_id))
+        else:
+            conn.execute("UPDATE articles SET status = ?, read_at = NULL WHERE id = ?", (status, article_id))
 
     accept = request.headers.get("accept", "")
     if "text/html" in accept and "application/json" not in accept and request.headers.get("sec-fetch-dest") == "document":
@@ -1386,7 +1407,11 @@ def toggle_status(article_id: int):
         row = conn.execute("SELECT status FROM articles WHERE id = ?", (article_id,)).fetchone()
         if row is not None:
             new_status = "unread" if row["status"] == "read" else "read"
-            conn.execute("UPDATE articles SET status = ? WHERE id = ?", (new_status, article_id))
+            if new_status == "read":
+                now_str = datetime.now(timezone.utc).isoformat()
+                conn.execute("UPDATE articles SET status = ?, read_at = ? WHERE id = ?", (new_status, now_str, article_id))
+            else:
+                conn.execute("UPDATE articles SET status = ?, read_at = NULL WHERE id = ?", (new_status, article_id))
             return JSONResponse({"success": True, "status": new_status})
     return JSONResponse({"success": False}, status_code=404)
 
