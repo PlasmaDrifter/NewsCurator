@@ -162,6 +162,28 @@ systemctl --user stop newscurator.service
 
 ---
 
+### 4. Updating
+
+To update an existing installation to the latest version:
+
+```bash
+cd NewsCurator
+git pull
+./install.sh
+systemctl --user restart newscurator.service
+```
+
+If you manage your virtual environment manually without `install.sh`:
+```bash
+cd NewsCurator
+git pull
+source app/.venv/bin/activate
+pip install -r app/requirements.txt
+systemctl --user restart newscurator.service
+```
+
+---
+
 ## Database Schema
 
 The application uses SQLite with four core tables:
