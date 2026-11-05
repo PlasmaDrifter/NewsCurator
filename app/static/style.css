@@ -612,7 +612,7 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   flex-direction: column;
   height: 240px;
   position: relative;
-  transition: opacity 0.2s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
 }
 
@@ -2701,7 +2701,7 @@ input[type="color"]::-moz-color-swatch {
 }
 
 body.anim-cascade-enabled .card-grid:not(.table-view) .card {
-  animation: cardEntrance 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: cardEntrance 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: calc(var(--card-idx, 0) * 15ms);
 }
 
@@ -2717,7 +2717,7 @@ body.anim-cascade-enabled .card-grid:not(.table-view) .card {
 }
 
 body.anim-cascade-enabled .card-grid.table-view .card {
-  animation: cardEntranceTable 0.16s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: cardEntranceTable 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: calc(var(--card-idx, 0) * 10ms);
 }
 
