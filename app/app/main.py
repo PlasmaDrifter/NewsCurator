@@ -49,8 +49,10 @@ except Exception:
 def get_local_now_str() -> str:
     return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
-APP_VERSION = "v0.8.6"
+APP_VERSION = "v0.8.7"
 GITHUB_REPO = "PlasmaDrifter/NewsCurator"
+
+_refresh_interval_event = threading.Event()
 
 UPDATE_CACHE = {
     "last_checked": 0,
@@ -1025,19 +1027,10 @@ def background_refresher():
             except Exception:
                 interval_min = 30
 
-        # Responsive sleep loop checking for interval setting updates
+        # Wait for the configured interval, waking up immediately if changed in UI
         target_seconds = interval_min * 60
-        elapsed = 0
-        while elapsed < target_seconds:
-            time.sleep(5)
-            elapsed += 5
-            with closing(get_db()) as conn:
-                try:
-                    current_setting = int(get_setting(conn, "refresh_interval", "30"))
-                    if current_setting != interval_min:
-                        break
-                except Exception:
-                    pass
+        _refresh_interval_event.wait(timeout=target_seconds)
+        _refresh_interval_event.clear()
 
 
 @app.on_event("startup")
@@ -1671,6 +1664,7 @@ def update_interval(refresh_interval: int = Form(...)):
         refresh_interval = 1
     with closing(get_db()) as conn, conn:
         set_setting(conn, "refresh_interval", str(refresh_interval))
+    _refresh_interval_event.set()
     return RedirectResponse("/feeds", status_code=303)
 
 
