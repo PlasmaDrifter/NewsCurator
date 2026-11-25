@@ -2,6 +2,8 @@ import os
 import sys
 import shutil
 import re
+import html
+import uuid
 import sqlite3
 import time
 import threading
@@ -9,11 +11,15 @@ import hashlib
 import json
 import socket
 import urllib.request
+import urllib.error
+import email.utils
+import concurrent.futures
 from urllib.parse import urlsplit, urlunsplit
 import collections
 import subprocess
 import tarfile
 import tempfile
+from typing import Optional
 from contextlib import closing
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -49,10 +55,12 @@ except Exception:
 def get_local_now_str() -> str:
     return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
-APP_VERSION = "v0.8.7"
+APP_VERSION = "v0.8.8"
 GITHUB_REPO = "PlasmaDrifter/NewsCurator"
 
 _refresh_interval_event = threading.Event()
+_refresh_lock = threading.Lock()
+_update_fetch_lock = threading.Lock()
 
 UPDATE_CACHE = {
     "last_checked": 0,
@@ -61,6 +69,25 @@ UPDATE_CACHE = {
     "has_update": False,
     "lock": threading.Lock(),
 }
+
+def get_cached_github_update(enabled=True):
+    """Return cached GitHub update metadata without performing network I/O."""
+    if not enabled:
+        return {
+            "has_update": False,
+            "latest_version": APP_VERSION,
+            "release_url": f"https://github.com/{GITHUB_REPO}/releases",
+            "current_version": APP_VERSION,
+            "check_enabled": False,
+        }
+    with UPDATE_CACHE["lock"]:
+        return {
+            "has_update": UPDATE_CACHE["has_update"],
+            "latest_version": UPDATE_CACHE["latest_version"],
+            "release_url": UPDATE_CACHE["release_url"],
+            "current_version": APP_VERSION,
+            "check_enabled": True,
+        }
 
 def parse_version_tuple(v_str: str):
     if not v_str:
@@ -92,57 +119,57 @@ def check_github_update(force=False, enabled=True):
             "check_enabled": False,
         }
 
-    now = time.time()
-    # Cache for 1 hour (3600 seconds) unless forced
-    with UPDATE_CACHE["lock"]:
-        if not force and (now - UPDATE_CACHE["last_checked"] < 3600) and UPDATE_CACHE["last_checked"] > 0:
-            return {
-                "has_update": UPDATE_CACHE["has_update"],
-                "latest_version": UPDATE_CACHE["latest_version"],
-                "release_url": UPDATE_CACHE["release_url"],
-                "current_version": APP_VERSION,
-                "check_enabled": True,
-            }
-
-    try:
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": f"NewsCurator-UpdateChecker/{APP_VERSION}",
-                "Accept": "application/vnd.github.v3+json"
-            }
-        )
-        with urllib.request.urlopen(req, timeout=4) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            tag = data.get("tag_name", "").strip()
-            html_url = data.get("html_url") or f"https://github.com/{GITHUB_REPO}/releases"
-            has_update = bool(tag and is_newer_version(tag, APP_VERSION))
-
-            with UPDATE_CACHE["lock"]:
-                UPDATE_CACHE["last_checked"] = now
-                UPDATE_CACHE["latest_version"] = tag or APP_VERSION
-                UPDATE_CACHE["release_url"] = html_url
-                UPDATE_CACHE["has_update"] = has_update
-
-            return {
-                "has_update": has_update,
-                "latest_version": tag or APP_VERSION,
-                "release_url": html_url,
-                "current_version": APP_VERSION,
-                "check_enabled": True,
-            }
-    except Exception:
+    with _update_fetch_lock:
+        now = time.time()
         with UPDATE_CACHE["lock"]:
-            # On error, wait 10 min before next attempt to avoid spamming
-            UPDATE_CACHE["last_checked"] = now - 3000
-            return {
-                "has_update": UPDATE_CACHE["has_update"],
-                "latest_version": UPDATE_CACHE["latest_version"],
-                "release_url": UPDATE_CACHE["release_url"],
-                "current_version": APP_VERSION,
-                "check_enabled": True,
-            }
+            if not force and (now - UPDATE_CACHE["last_checked"] < 3600) and UPDATE_CACHE["last_checked"] > 0:
+                return {
+                    "has_update": UPDATE_CACHE["has_update"],
+                    "latest_version": UPDATE_CACHE["latest_version"],
+                    "release_url": UPDATE_CACHE["release_url"],
+                    "current_version": APP_VERSION,
+                    "check_enabled": True,
+                }
+
+        try:
+            url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": f"NewsCurator-UpdateChecker/{APP_VERSION}",
+                    "Accept": "application/vnd.github.v3+json"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                tag = data.get("tag_name", "").strip()
+                html_url = data.get("html_url") or f"https://github.com/{GITHUB_REPO}/releases"
+                has_update = bool(tag and is_newer_version(tag, APP_VERSION))
+
+                with UPDATE_CACHE["lock"]:
+                    UPDATE_CACHE["last_checked"] = now
+                    UPDATE_CACHE["latest_version"] = tag or APP_VERSION
+                    UPDATE_CACHE["release_url"] = html_url
+                    UPDATE_CACHE["has_update"] = has_update
+
+                return {
+                    "has_update": has_update,
+                    "latest_version": tag or APP_VERSION,
+                    "release_url": html_url,
+                    "current_version": APP_VERSION,
+                    "check_enabled": True,
+                }
+        except Exception:
+            with UPDATE_CACHE["lock"]:
+                # On error, wait 10 min before next attempt to avoid spamming
+                UPDATE_CACHE["last_checked"] = now - 3000
+                return {
+                    "has_update": UPDATE_CACHE["has_update"],
+                    "latest_version": UPDATE_CACHE["latest_version"],
+                    "release_url": UPDATE_CACHE["release_url"],
+                    "current_version": APP_VERSION,
+                    "check_enabled": True,
+                }
 
 # In-Memory Rotating Log Buffer (holds latest 1,000 log lines)
 class InMemoryLogBuffer:
@@ -209,14 +236,9 @@ socket.setdefaulttimeout(20.0)
 
 import feedparser
 from fastapi import FastAPI, Form, Request, UploadFile, File, HTTPException
-from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-try:
-    from googlenewsdecoder import gnewsdecoder
-except Exception:
-    gnewsdecoder = None
 
 # Base directory for static files and templates (supports PyInstaller bundle extraction)
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
@@ -270,23 +292,26 @@ MONTH_ABBR = {
     6: "June", 7: "July", 8: "Aug.", 9: "Sept.", 10: "Oct.", 11: "Nov.", 12: "Dec."
 }
 
+def _parse_iso_utc(iso_str: str) -> datetime:
+    """Parse an ISO-8601 timestamp string and ensure it is UTC-aware."""
+    dt = datetime.fromisoformat(str(iso_str).replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def format_date(value):
     if not value:
         return ""
-    import email.utils
-    from zoneinfo import ZoneInfo
-    from datetime import datetime
     try:
         parsed = email.utils.parsedate_tz(value)
         if parsed:
             ts = email.utils.mktime_tz(parsed)
-            dt = datetime.fromtimestamp(ts, tz=ZoneInfo("America/Los_Angeles"))
+            dt = datetime.fromtimestamp(ts, tz=LOCAL_TZ)
             month_str = MONTH_ABBR.get(dt.month, dt.strftime("%b"))
             return f"[ {month_str} {dt.day} - {dt.strftime('%H:%M')} ]"
         try:
-            val_clean = value.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(val_clean)
-            dt = dt.astimezone(ZoneInfo("America/Los_Angeles"))
+            dt = _parse_iso_utc(value).astimezone(LOCAL_TZ)
             month_str = MONTH_ABBR.get(dt.month, dt.strftime("%b"))
             return f"[ {month_str} {dt.day} - {dt.strftime('%H:%M')} ]"
         except Exception:
@@ -310,9 +335,7 @@ def format_time_ago(iso_str):
     if not iso_str:
         return "never"
     try:
-        dt = datetime.fromisoformat(iso_str)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+        dt = _parse_iso_utc(iso_str)
         now = datetime.now(timezone.utc)
         diff = now - dt
         seconds = diff.total_seconds()
@@ -337,7 +360,7 @@ def is_older_than_day(iso_str):
     if not iso_str:
         return True
     try:
-        dt = datetime.fromisoformat(iso_str)
+        dt = _parse_iso_utc(iso_str)
         now = datetime.now(timezone.utc)
         return (now - dt).total_seconds() > 86400
     except Exception:
@@ -347,8 +370,7 @@ templates.env.filters["is_older_than_day"] = is_older_than_day
 
 def extract_domain(url):
     try:
-        from urllib.parse import urlparse
-        host = urlparse(url).netloc
+        host = urlsplit(url).netloc
         return host.removeprefix("www.")
     except Exception:
         return ""
@@ -359,7 +381,7 @@ def format_fetched_minutes(fetched_at_str):
     if not fetched_at_str:
         return ""
     try:
-        dt = datetime.fromisoformat(fetched_at_str)
+        dt = _parse_iso_utc(fetched_at_str)
         now = datetime.now(timezone.utc)
         diff = now - dt
         total_minutes = int(diff.total_seconds() // 60)
@@ -682,9 +704,21 @@ templates.env.globals["THEME_PRESETS"] = THEME_PRESETS
 
 
 
+def _normalize_hex(hex_color, default="#888888"):
+    """Expand #RGB or validate #RRGGBB hex strings."""
+    if not hex_color or not isinstance(hex_color, str):
+        return default
+    h = hex_color.strip().lstrip("#")
+    if len(h) == 3 and all(c in "0123456789abcdefABCDEF" for c in h):
+        h = "".join(c * 2 for c in h)
+    if len(h) != 6 or not all(c in "0123456789abcdefABCDEF" for c in h):
+        return default
+    return f"#{h}"
+
+
 def hex_to_dark_bg(hex_color, alpha=0.15):
     """Darken a hex color for use as a background."""
-    h = hex_color.lstrip("#")
+    h = _normalize_hex(hex_color).lstrip("#")
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
     return f"rgba({r},{g},{b},{alpha})"
 
@@ -692,12 +726,11 @@ def hex_to_dark_bg(hex_color, alpha=0.15):
 def hex_to_rgba(hex_color, alpha=1.0):
     if not hex_color:
         return ""
-    h = hex_color.lstrip("#")
-    try:
-        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-        return f"rgba({r},{g},{b},{alpha})"
-    except Exception:
+    h = _normalize_hex(hex_color, default="").lstrip("#")
+    if len(h) != 6:
         return hex_color
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
 
 
 templates.env.filters["hex_to_rgba"] = hex_to_rgba
@@ -784,6 +817,14 @@ def init_db():
             conn.execute("ALTER TABLE feeds ADD COLUMN last_error TEXT")
         except Exception:
             pass
+        try:
+            conn.execute("ALTER TABLE feeds ADD COLUMN etag TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE feeds ADD COLUMN last_modified TEXT")
+        except Exception:
+            pass
         conn.execute("""
             CREATE TABLE IF NOT EXISTS articles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -815,6 +856,27 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_bookmarked ON articles(is_bookmarked)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_read_at ON articles(read_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_fetched_at ON articles(fetched_at DESC, id DESC)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_status_fetched ON articles(status, fetched_at DESC, id DESC)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_feed_fetched ON articles(feed_id, fetched_at DESC, id DESC)")
+
+        # One-time cleanup: decode literal HTML entities left in legacy titles/summaries
+        try:
+            if get_setting(conn, "entities_cleaned_v2", "0") != "1":
+                dirty_rows = conn.execute(
+                    "SELECT id, title, summary FROM articles WHERE title LIKE '%&%' OR summary LIKE '%&%'"
+                ).fetchall()
+                updates = []
+                for dr in dirty_rows:
+                    new_title = _decode_title(dr["title"])
+                    new_summary = _unescape_entities(dr["summary"]) if dr["summary"] else dr["summary"]
+                    if new_title != dr["title"] or new_summary != dr["summary"]:
+                        updates.append((new_title, new_summary, dr["id"]))
+                if updates:
+                    conn.executemany("UPDATE articles SET title = ?, summary = ? WHERE id = ?", updates)
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('entities_cleaned_v2', '1')")
+        except Exception as e:
+            print(f"Entity cleanup migration error: {e}", flush=True)
 
         # Migration: abbreviate Google News to G.News
         try:
@@ -853,118 +915,166 @@ def init_db():
         conn.execute("UPDATE categories SET color = '#888888' WHERE color IS NULL OR color = ''")
 
 
-def extract_image(entry):
-    # Try media_content, media_thumbnail, then look in links/enclosures
-    if "media_content" in entry and entry.media_content:
-        url = entry.media_content[0].get("url")
-        if url:
-            return url
-    if "media_thumbnail" in entry and entry.media_thumbnail:
-        url = entry.media_thumbnail[0].get("url")
-        if url:
-            return url
-    for link in entry.get("links", []):
-        if link.get("type", "").startswith("image"):
-            return link.get("href")
-    # Try to pull first <img> from summary/content html
-    html = ""
-    if "content" in entry and entry.content:
-        html = entry.content[0].get("value", "")
-    elif "summary" in entry:
-        html = entry.summary
-    if html and "<img" in html:
-        import re
-        m = re.search(r'<img[^>]+src="([^"]+)"', html)
-        if m:
-            return m.group(1)
-    return None
+FEED_REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
+    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+}
+
+
+def _unescape_entities(text: str) -> str:
+    """Decode single- or double-encoded HTML entities safely (max 3 passes)."""
+    if not text or "&" not in text:
+        return text or ""
+    for _ in range(3):
+        decoded = html.unescape(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text
+
+
+def _decode_title(raw_title: str) -> str:
+    """Unescape HTML entities and normalize whitespace in article titles."""
+    cleaned = _unescape_entities(raw_title or "(no title)")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned or "(no title)"
 
 
 def clean_summary(entry, max_len=500):
-    import re
     text = ""
     if "summary" in entry:
-        text = entry.summary
-    elif "content" in entry and entry.content:
-        text = entry.content[0].get("value", "")
+        text = entry.get("summary") or ""
+    elif "content" in entry and entry.get("content"):
+        text = entry.get("content")[0].get("value", "")
+    text = _unescape_entities(text)
     text = re.sub(r"<[^>]+>", " ", text)  # strip html tags
+    text = _unescape_entities(text)
     text = re.sub(r"\s+", " ", text).strip()
     if len(text) > max_len:
         text = text[:max_len].rsplit(" ", 1)[0] + "…"
     return text
 
 
-def fetch_feed(conn, feed_row):
-    err_msg = None
+def _download_and_parse_feed(feed_dict: dict, use_cache: bool = True) -> dict:
+    """Download and parse a single RSS/Atom feed without touching SQLite."""
+    headers = dict(FEED_REQUEST_HEADERS)
+    if use_cache:
+        if feed_dict.get("etag"):
+            headers["If-None-Match"] = feed_dict["etag"]
+        if feed_dict.get("last_modified"):
+            headers["If-Modified-Since"] = feed_dict["last_modified"]
+
+    req = urllib.request.Request(feed_dict["url"], headers=headers)
     try:
-        req = urllib.request.Request(
-            feed_row["url"],
-            headers={
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 NewsCurator/0.7"
-            }
-        )
         with urllib.request.urlopen(req, timeout=15) as resp:
             raw_content = resp.read()
-        parsed = feedparser.parse(raw_content)
-        if getattr(parsed, "bozo", 0) and not getattr(parsed, "entries", None):
-            err_msg = str(getattr(parsed, "bozo_exception", "Parse error"))[:120]
-            print(f"Error parsing {feed_row['name']}: {err_msg}", flush=True)
-    except Exception as e:
-        print(f"Error fetching {feed_row['name']}: {e}", flush=True)
+            new_etag = resp.headers.get("ETag")
+            new_last_modified = resp.headers.get("Last-Modified")
+    except urllib.error.HTTPError as e:
+        if e.code == 304:
+            return {
+                "feed_id": feed_dict["id"],
+                "feed_name": feed_dict["name"],
+                "not_modified": True,
+                "err_msg": None,
+                "etag": feed_dict.get("etag"),
+                "last_modified": feed_dict.get("last_modified"),
+                "entries": [],
+                "total_entries": 0,
+            }
         err_msg = str(e)[:120]
+        print(f"Error fetching {feed_dict['name']}: {e}", flush=True)
+        return {"feed_id": feed_dict["id"], "feed_name": feed_dict["name"], "error_only": True, "err_msg": err_msg}
+    except Exception as e:
+        err_msg = str(e)[:120]
+        print(f"Error fetching {feed_dict['name']}: {e}", flush=True)
+        return {"feed_id": feed_dict["id"], "feed_name": feed_dict["name"], "error_only": True, "err_msg": err_msg}
+
+    parsed = feedparser.parse(raw_content)
+    raw_entries = getattr(parsed, "entries", None) or []
+    err_msg = None
+    if getattr(parsed, "bozo", 0) and not raw_entries:
+        err_msg = str(getattr(parsed, "bozo_exception", "Parse error"))[:120]
+        print(f"Error parsing {feed_dict['name']}: {err_msg}", flush=True)
+
+    prepared_entries = []
+    for entry in raw_entries:
+        title = _decode_title(entry.get("title", "(no title)"))
+        guid = entry.get("id") or entry.get("link")
+        if not guid:
+            guid = hashlib.sha256(title.encode()).hexdigest()
+        published = entry.get("published") or entry.get("updated") or ""
+        link = entry.get("link", "")
+        summary = clean_summary(entry)
+        prepared_entries.append((guid, title, link, summary, published))
+
+    return {
+        "feed_id": feed_dict["id"],
+        "feed_name": feed_dict["name"],
+        "not_modified": False,
+        "error_only": False,
+        "err_msg": err_msg,
+        "etag": new_etag,
+        "last_modified": new_last_modified,
+        "entries": prepared_entries,
+        "total_entries": len(raw_entries),
+    }
+
+
+def _save_feed_result(conn, result: dict) -> int:
+    """Persist a parsed feed download result into SQLite and return new article count."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    feed_id = result["feed_id"]
+    feed_name = result["feed_name"]
+
+    if result.get("error_only"):
         conn.execute(
             "UPDATE feeds SET last_fetched = ?, last_error = ? WHERE id = ?",
-            (datetime.now(timezone.utc).isoformat(), err_msg, feed_row["id"])
+            (now_iso, result["err_msg"], feed_id)
         )
         return 0
 
+    if result.get("not_modified"):
+        conn.execute(
+            "UPDATE feeds SET last_fetched = ?, last_error = NULL WHERE id = ?",
+            (now_iso, feed_id)
+        )
+        print(f"Fetched '{feed_name}': 304 Not Modified", flush=True)
+        return 0
+
     conn.execute(
-        "UPDATE feeds SET last_fetched = ?, last_error = ? WHERE id = ?",
-        (datetime.now(timezone.utc).isoformat(), err_msg, feed_row["id"])
+        "UPDATE feeds SET last_fetched = ?, last_error = ?, etag = ?, last_modified = ? WHERE id = ?",
+        (now_iso, result["err_msg"], result.get("etag"), result.get("last_modified"), feed_id)
     )
 
+    entries = result["entries"]
+    if not entries:
+        print(f"Fetched '{feed_name}': 0 new articles (0 checked)", flush=True)
+        return 0
+
     new_count = 0
-    total_entries = len(parsed.entries) if getattr(parsed, "entries", None) else 0
-    for entry in parsed.entries:
-        guid = entry.get("id") or entry.get("link")
-        if not guid:
-            guid = hashlib.sha256(entry.get("title", "").encode()).hexdigest()
-
-        exists = conn.execute(
-            "SELECT 1 FROM articles WHERE guid = ?", (guid,)
-        ).fetchone()
-        if exists:
-            continue
-
-        published = entry.get("published") or entry.get("updated") or ""
-        title = entry.get("title", "(no title)")
-        link = entry.get("link", "")
-        summary = clean_summary(entry)
-        raw_content = ""
-        if "content" in entry and entry.content:
-            raw_content = entry.content[0].get("value", "")
-        elif "summary_detail" in entry and entry.summary_detail:
-            raw_content = entry.summary_detail.get("value", "")
-        elif "summary" in entry:
-            raw_content = entry.summary or ""
-        image_url = extract_image(entry)
-
-        conn.execute(
+    for guid, title, link, summary, published in entries:
+        cursor = conn.execute(
             """INSERT OR IGNORE INTO articles
                (feed_id, guid, title, link, summary, content, image_url, published, fetched_at, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'unread')""",
-            (
-                feed_row["id"], guid, title, link, summary, raw_content, image_url,
-                published, datetime.now(timezone.utc).isoformat(),
-            ),
+               VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, 'unread')""",
+            (feed_id, guid, title, link, summary, published, now_iso),
         )
-        new_count += 1
+        if cursor.rowcount > 0:
+            new_count += 1
 
+    total_entries = result["total_entries"]
     if new_count > 0:
-        print(f"Fetched '{feed_row['name']}': {new_count} new articles ({total_entries} total in feed)", flush=True)
+        print(f"Fetched '{feed_name}': {new_count} new articles ({total_entries} total in feed)", flush=True)
     else:
-        print(f"Fetched '{feed_row['name']}': 0 new articles ({total_entries} checked)", flush=True)
+        print(f"Fetched '{feed_name}': 0 new articles ({total_entries} checked)", flush=True)
     return new_count
+
+
+def fetch_feed(conn, feed_row, use_cache: bool = False):
+    result = _download_and_parse_feed(dict(feed_row), use_cache=use_cache)
+    return _save_feed_result(conn, result)
 
 
 def cleanup_old_articles(days=None):
@@ -974,6 +1084,7 @@ def cleanup_old_articles(days=None):
                 days = int(get_setting(conn, "retention_days", "14"))
             except Exception:
                 days = 14
+        days = max(1, min(3650, days))
         cursor = conn.execute(
             """DELETE FROM articles 
                WHERE datetime(fetched_at) < datetime('now', '-' || ? || ' days')
@@ -986,20 +1097,48 @@ def cleanup_old_articles(days=None):
             print(f"Cleaned up {deleted} articles older than {days} days", flush=True)
         else:
             print(f"Retention check: 0 articles older than {days} days to clean up", flush=True)
+
+        # Reclaim fragmented DB space when freelist grows large (>33% of file)
+        try:
+            page_count = conn.execute("PRAGMA page_count").fetchone()[0]
+            freelist_count = conn.execute("PRAGMA freelist_count").fetchone()[0]
+            should_vacuum = freelist_count > max(500, page_count // 3)
+        except Exception:
+            should_vacuum = False
+
+    if should_vacuum:
+        try:
+            with closing(get_db()) as vconn:
+                vconn.isolation_level = None
+                vconn.execute("VACUUM")
+            print(f"Compacted SQLite database (reclaimed {freelist_count} free pages)", flush=True)
+        except Exception as e:
+            print(f"Database compaction skipped: {e}", flush=True)
+
     return deleted
 
 
-def refresh_all_feeds():
-    with closing(get_db()) as conn:
-        feeds = conn.execute("SELECT * FROM feeds WHERE enabled = 1").fetchall()
-        total_new = 0
+def refresh_all_feeds(force: bool = False):
+    with _refresh_lock:
+        with closing(get_db()) as conn:
+            feeds = [dict(r) for r in conn.execute("SELECT * FROM feeds WHERE enabled = 1").fetchall()]
+
         feed_count = len(feeds)
+        if feed_count == 0:
+            return 0
+
         print(f"Refreshing {feed_count} enabled feeds...", flush=True)
-        for feed in feeds:
-            with conn:
-                total_new += fetch_feed(conn, feed)
+        workers = min(8, feed_count)
+        use_cache = not force
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            results = list(executor.map(lambda f: _download_and_parse_feed(f, use_cache=use_cache), feeds))
+
+        total_new = 0
+        with closing(get_db()) as conn, conn:
+            for result in results:
+                total_new += _save_feed_result(conn, result)
         print(f"Refresh complete: {feed_count} feeds checked, {total_new} new articles added", flush=True)
-    return total_new
+        return total_new
 
 
 def background_refresher():
@@ -1041,7 +1180,19 @@ def startup():
     t.start()
 
 
-def query_articles(conn, category="all", source="all", q="", bookmarked=False, unread_only=False, history=False, offset=0, limit=60):
+def query_articles(
+    conn,
+    category="all",
+    source="all",
+    q="",
+    bookmarked=False,
+    unread_only=False,
+    history=False,
+    offset=0,
+    limit=60,
+    cursor_ts: Optional[str] = None,
+    cursor_id: Optional[int] = None,
+):
     params = []
     where_clauses = ["1=1"]
 
@@ -1062,19 +1213,32 @@ def query_articles(conn, category="all", source="all", q="", bookmarked=False, u
         where_clauses.append("(articles.title LIKE ? OR articles.summary LIKE ?)")
         params.extend([search_term, search_term])
 
+    ts_col = "articles.read_at" if history else "articles.fetched_at"
+    use_cursor = bool(cursor_ts and cursor_id is not None)
+    if use_cursor:
+        where_clauses.append(f"({ts_col} < ? OR ({ts_col} = ? AND articles.id < ?))")
+        params.extend([cursor_ts, cursor_ts, cursor_id])
+
     where_sql = " AND ".join(where_clauses)
-    order_clause = "articles.read_at DESC" if history else "articles.fetched_at DESC"
+    order_clause = f"{ts_col} DESC, articles.id DESC"
+    offset_sql = "" if use_cursor else " OFFSET ?"
 
     query = f"""
-        SELECT articles.*, feeds.name as feed_name, feeds.category as feed_category, COALESCE(categories.color, '#888888') as category_color
+        SELECT articles.id, articles.feed_id, articles.guid, articles.title, articles.link,
+               articles.summary, articles.published, articles.fetched_at, articles.status,
+               articles.is_bookmarked, articles.read_at,
+               feeds.name as feed_name, feeds.category as feed_category,
+               COALESCE(categories.color, '#888888') as category_color
         FROM articles 
         JOIN feeds ON articles.feed_id = feeds.id
         LEFT JOIN categories ON LOWER(feeds.category) = LOWER(categories.name)
         WHERE {where_sql}
         ORDER BY {order_clause}
-        LIMIT ? OFFSET ?
+        LIMIT ?{offset_sql}
     """
-    params.extend([limit + 1, offset])
+    params.append(limit + 1)
+    if not use_cursor:
+        params.append(offset)
     rows = conn.execute(query, params).fetchall()
 
     has_more = len(rows) > limit
@@ -1106,13 +1270,22 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         card_compact = get_setting(conn, "card_compact", "0") == "1"
         show_github_btn = get_setting(conn, "show_github_btn", "1") == "1"
         check_for_updates = get_setting(conn, "check_for_updates", "1") == "1"
-        update_info = check_github_update(force=False, enabled=check_for_updates)
+        active_favicon = get_setting(conn, "favicon", "/static/favicons/newspaper.svg")
+        favicon_version = get_setting(conn, "favicon_version", "1")
+        theme_version = get_setting(conn, "theme_version", "1")
+        update_info = get_cached_github_update(enabled=check_for_updates)
+
+    last_article = articles[-1] if articles else None
+    next_cursor_ts = (last_article["read_at"] if history else last_article["fetched_at"]) if last_article else ""
+    next_cursor_id = last_article["id"] if last_article else None
 
     return templates.TemplateResponse(request, "index.html", {
         "request": request,
         "articles": articles,
         "has_more": has_more,
         "initial_count": len(articles),
+        "next_cursor_ts": next_cursor_ts or "",
+        "next_cursor_id": next_cursor_id,
         "search_query": q,
         "feeds": feeds,
         "categories": categories,
@@ -1133,6 +1306,9 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
         "card_compact": card_compact,
         "show_github_btn": show_github_btn,
         "check_for_updates": check_for_updates,
+        "active_favicon": active_favicon,
+        "favicon_version": favicon_version,
+        "theme_version": theme_version,
         "app_version": APP_VERSION,
         "update_available": update_info.get("has_update", False),
         "latest_version": update_info.get("latest_version", APP_VERSION),
@@ -1141,13 +1317,25 @@ def index(request: Request, category: str = "all", source: str = "all", q: str =
 
 
 @app.get("/api/articles")
-def api_articles(category: str = "all", source: str = "all", q: str = "", bookmarked: int = 0, history: int = 0, unread: int = 0, offset: int = 0, limit: int = 60):
+def api_articles(
+    category: str = "all",
+    source: str = "all",
+    q: str = "",
+    bookmarked: int = 0,
+    history: int = 0,
+    unread: int = 0,
+    offset: int = 0,
+    limit: int = 60,
+    cursor_ts: str = "",
+    cursor_id: Optional[int] = None,
+):
     with closing(get_db()) as conn:
         rows, has_more = query_articles(
             conn, category=category, source=source, q=q,
             bookmarked=bool(bookmarked), unread_only=bool(unread),
             history=bool(history),
-            offset=offset, limit=limit
+            offset=offset, limit=limit,
+            cursor_ts=cursor_ts or None, cursor_id=cursor_id
         )
         border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
         items = []
@@ -1172,9 +1360,16 @@ def api_articles(category: str = "all", source: str = "all", q: str = "", bookma
                 "read_at": read_at_val,
                 "read_at_ago": format_time_ago(read_at_val) if read_at_val else "",
             })
+
+    last_row = rows[-1] if rows else None
+    next_cursor_ts = (last_row["read_at"] if history else last_row["fetched_at"]) if last_row else ""
+    next_cursor_id = last_row["id"] if last_row else None
+
     return JSONResponse({
         "articles": items,
         "offset": offset + len(items),
+        "next_cursor_ts": next_cursor_ts or "",
+        "next_cursor_id": next_cursor_id,
         "has_more": has_more
     })
 
@@ -1233,7 +1428,10 @@ def apply_self_update(target_tag: str = "") -> dict:
         git_dir = str(BUNDLE_DIR.parent)
 
     if git_dir:
-        status_check = subprocess.run(["git", "status", "--porcelain"], cwd=git_dir, capture_output=True, text=True)
+        status_check = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=git_dir, capture_output=True, text=True
+        )
         if status_check.stdout.strip():
             new_ver = target_tag.lstrip("v") if target_tag else APP_VERSION.lstrip("v")
             main_file = Path(__file__).resolve()
@@ -1329,14 +1527,24 @@ def apply_self_update(target_tag: str = "") -> dict:
 
 
 def trigger_server_restart():
-    """Restarts the running server in-place via os.execv on a background thread."""
+    """Checkpoint SQLite WAL and restart the server in-place via os.execv."""
     def _restart():
         time.sleep(1.0)
+        # Wait briefly if a feed refresh is mid-transaction before replacing process
+        acquired = _refresh_lock.acquire(timeout=3.0)
+        try:
+            with closing(get_db()) as conn:
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+        except Exception:
+            pass
+        finally:
+            if acquired:
+                _refresh_lock.release()
         try:
             os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception as e:
             print(f"[{get_local_now_str()}] In-process restart error: {e}. Exiting for service restart...", flush=True)
-            sys.exit(0)
+            sys.exit(1)
 
     t = threading.Thread(target=_restart, daemon=True)
     t.start()
@@ -1409,21 +1617,33 @@ def toggle_status(article_id: int):
     return JSONResponse({"success": False}, status_code=404)
 
 
+def _is_valid_feed_url(url: str) -> bool:
+    try:
+        parsed = urlsplit((url or "").strip())
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+        return False
+
+
 @app.post("/refresh")
 def manual_refresh(redirect_to: str = Form("/")):
     print("Manual feed refresh triggered by user", flush=True)
-    refresh_all_feeds()
+    refresh_all_feeds(force=True)
     return RedirectResponse(safe_redirect_url(redirect_to, default="/"), status_code=303)
 
 
 @app.post("/feeds/add")
 def add_feed(name: str = Form(...), url: str = Form(...), category: str = Form(...)):
+    clean_name = name.strip()
+    clean_url = url.strip()
+    if not clean_name or not _is_valid_feed_url(clean_url):
+        return RedirectResponse("/feeds", status_code=303)
     with closing(get_db()) as conn, conn:
         conn.execute(
             "INSERT OR IGNORE INTO feeds (name, url, category) VALUES (?, ?, ?)",
-            (name, url, category),
+            (clean_name, clean_url, category.strip()),
         )
-        feed = conn.execute("SELECT * FROM feeds WHERE url = ?", (url,)).fetchone()
+        feed = conn.execute("SELECT * FROM feeds WHERE url = ?", (clean_url,)).fetchone()
         if feed:
             fetch_feed(conn, feed)
     return RedirectResponse("/feeds", status_code=303)
@@ -1451,14 +1671,19 @@ def delete_feed(feed_id: int):
 
 @app.post("/feeds/{feed_id}/edit")
 def edit_feed(feed_id: int, name: str = Form(...), url: str = Form(...), category: str = Form(...)):
+    clean_name = name.strip()
+    clean_url = url.strip()
+    if not clean_name or not _is_valid_feed_url(clean_url):
+        return RedirectResponse("/feeds", status_code=303)
     with closing(get_db()) as conn, conn:
         old_feed = conn.execute("SELECT url FROM feeds WHERE id = ?", (feed_id,)).fetchone()
-        url_changed = old_feed and old_feed["url"] != url
+        url_changed = old_feed and old_feed["url"] != clean_url
         conn.execute(
             "UPDATE feeds SET name = ?, url = ?, category = ? WHERE id = ?",
-            (name, url, category, feed_id),
+            (clean_name, clean_url, category.strip(), feed_id),
         )
         if url_changed:
+            conn.execute("UPDATE feeds SET etag = NULL, last_modified = NULL WHERE id = ?", (feed_id,))
             feed = conn.execute("SELECT * FROM feeds WHERE id = ?", (feed_id,)).fetchone()
             if feed:
                 fetch_feed(conn, feed)
@@ -1522,7 +1747,8 @@ def feeds_page(request: Request):
         unread_icon_only = get_setting(conn, "unread_icon_only", "0") == "1"
         show_github_btn = get_setting(conn, "show_github_btn", "1") == "1"
         check_for_updates = get_setting(conn, "check_for_updates", "1") == "1"
-        update_info = check_github_update(force=False, enabled=check_for_updates)
+        update_info = get_cached_github_update(enabled=check_for_updates)
+        theme_version = get_setting(conn, "theme_version", "1")
         theme_cfg = get_active_theme_config(conn)
         active_theme = theme_cfg["active_theme"]
         active_theme_name = theme_cfg["theme_name"]
@@ -1539,6 +1765,7 @@ def feeds_page(request: Request):
         "refresh_interval": refresh_interval,
         "active_favicon": active_favicon,
         "favicon_version": favicon_version,
+        "theme_version": theme_version,
         "preset_favicons": PRESET_FAVICONS,
         "custom_favicons": custom_favicons,
         "total_articles": f"{total_articles:,}",
@@ -1591,10 +1818,18 @@ async def upload_favicon(file: UploadFile = File(...)):
     title = raw_stem.title()[:18] if raw_stem else "Custom Icon"
 
     timestamp = int(time.time())
-    dest_filename = f"fav_{timestamp}{ext}"
+    dest_filename = f"fav_{timestamp}_{uuid.uuid4().hex[:6]}{ext}"
     dest_path = UPLOAD_DIR / dest_filename
 
     content = await file.read()
+    if ext == ".svg":
+        try:
+            svg_text = content.decode("utf-8", errors="ignore")
+            svg_text = re.sub(r"<script\b[^>]*>.*?</script>", "", svg_text, flags=re.IGNORECASE | re.DOTALL)
+            svg_text = re.sub(r"\son[a-z]+\s*=\s*(['\"]).*?\1", "", svg_text, flags=re.IGNORECASE | re.DOTALL)
+            content = svg_text.encode("utf-8")
+        except Exception:
+            return RedirectResponse("/feeds", status_code=303)
     with open(dest_path, "wb") as f:
         f.write(content)
 
@@ -1640,21 +1875,31 @@ def delete_favicon(favicon_id: int):
 async def update_borders(request: Request):
     form = await request.form()
     colored_borders = "1" if "colored_borders" in form else "0"
-    border_opacity = form.get("border_opacity", "0.5")
-    border_size = form.get("border_size", "3")
+    try:
+        opacity_val = max(0.0, min(1.0, float(form.get("border_opacity", "0.5"))))
+    except Exception:
+        opacity_val = 0.5
+    try:
+        size_val = max(0, min(12, int(form.get("border_size", "3"))))
+    except Exception:
+        size_val = 3
     with closing(get_db()) as conn, conn:
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('colored_borders', ?)", (colored_borders,))
-        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('border_opacity', ?)", (border_opacity,))
-        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('border_size', ?)", (border_size,))
+        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('border_opacity', ?)", (f"{opacity_val:.1f}",))
+        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('border_size', ?)", (str(size_val),))
         conn.commit()
     return RedirectResponse("/feeds", status_code=303)
 
 
 @app.post("/settings/update-retention")
 def update_retention(retention_days: str = Form(...)):
+    try:
+        days = max(1, min(3650, int(retention_days)))
+    except Exception:
+        days = 14
     with closing(get_db()) as conn, conn:
-        set_setting(conn, "retention_days", retention_days)
-        cleanup_old_articles(int(retention_days))
+        set_setting(conn, "retention_days", str(days))
+        cleanup_old_articles(days)
     return RedirectResponse("/feeds", status_code=303)
 
 
@@ -1870,8 +2115,9 @@ async def mark_all_read(request: Request):
             where_clauses.append("(articles.title LIKE ? OR articles.summary LIKE ?)")
             params.extend([search_term, search_term])
         where_sql = " AND ".join(where_clauses)
+        now_str = datetime.now(timezone.utc).isoformat()
         sql = f"""
-            UPDATE articles SET status = 'read'
+            UPDATE articles SET status = 'read', read_at = COALESCE(read_at, ?)
             WHERE id IN (
                 SELECT articles.id
                 FROM articles
@@ -1879,7 +2125,7 @@ async def mark_all_read(request: Request):
                 WHERE {where_sql}
             )
         """
-        cursor = conn.execute(sql, params)
+        cursor = conn.execute(sql, [now_str] + params)
         count = cursor.rowcount
     return JSONResponse({"success": True, "count": count})
 
@@ -1896,11 +2142,11 @@ def get_contrast_text_color(hex_color):
 
 
 def get_contrast_text_color_blended(hex_color, opacity=1.0, bg_hex="#1a1d24"):
-    """Calculate contrast text color against the color blended over the dark background."""
-    h = hex_color.lstrip("#")
+    """Calculate contrast text color against the color blended over the active background."""
+    h = _normalize_hex(hex_color).lstrip("#")
+    bg_h = _normalize_hex(bg_hex, default="#1a1d24").lstrip("#")
     try:
         r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-        bg_h = bg_hex.lstrip("#")
         bg_r, bg_g, bg_b = int(bg_h[0:2], 16), int(bg_h[2:4], 16), int(bg_h[4:6], 16)
         final_r = opacity * r + (1.0 - opacity) * bg_r
         final_g = opacity * g + (1.0 - opacity) * bg_g
@@ -1913,12 +2159,12 @@ def get_contrast_text_color_blended(hex_color, opacity=1.0, bg_hex="#1a1d24"):
 
 @app.get("/dynamic.css")
 def dynamic_css():
-    from fastapi.responses import Response
     with closing(get_db()) as conn:
         categories = get_categories(conn)
         border_opacity = float(get_setting(conn, "border_opacity", "0.5"))
         theme_cfg = get_active_theme_config(conn)
         colors = theme_cfg["colors"]
+    theme_bg = colors.get("bg_card", "#21242c")
     lines = []
     lines.append(f"""
 :root {{
@@ -1936,7 +2182,7 @@ def dynamic_css():
         color = cat["color"]
         bg = hex_to_dark_bg(color, 0.15)
         cat_color = hex_to_rgba(color, border_opacity)
-        text_color = get_contrast_text_color_blended(color, border_opacity)
+        text_color = get_contrast_text_color_blended(color, border_opacity, bg_hex=theme_bg)
         css_cls = to_css_class(name)
         lines.append(f"""
 .badge-{css_cls} {{ background: {bg}; color: {color}; border-color: {cat_color}; }}
@@ -1965,7 +2211,11 @@ def dynamic_css():
 .cat-btn-{css_cls.lower()}.active,
 .cat-btn-{css_cls.lower()}.active:hover {{ background: {cat_color}; color: {text_color} !important; border-color: {cat_color}; }}
 """)
-    return Response(content="\n".join(lines), media_type="text/css")
+    return Response(
+        content="\n".join(lines),
+        media_type="text/css",
+        headers={"Cache-Control": "no-store"},
+    )
 
 @app.post("/categories/add")
 def add_category(name: str = Form(...), color: str = Form("#888888")):
@@ -1986,10 +2236,10 @@ def add_category(name: str = Form(...), color: str = Form("#888888")):
 def delete_category(name: str):
     with closing(get_db()) as conn, conn:
         in_use = conn.execute(
-            "SELECT COUNT(*) c FROM feeds WHERE category = ?", (name,)
+            "SELECT COUNT(*) c FROM feeds WHERE LOWER(category) = LOWER(?)", (name,)
         ).fetchone()["c"]
         if not in_use:
-            conn.execute("DELETE FROM categories WHERE name = ?", (name,))
+            conn.execute("DELETE FROM categories WHERE LOWER(name) = LOWER(?)", (name,))
     return RedirectResponse("/feeds", status_code=303)
 
 
@@ -2006,11 +2256,19 @@ def edit_category(old_name: str, name: str = Form(...), color: str = Form(...)):
     if name:
         with closing(get_db()) as conn, conn:
             if name != old_name:
-                row = conn.execute("SELECT position FROM categories WHERE name = ?", (old_name,)).fetchone()
-                pos = row["position"] if row else 0
-                conn.execute("DELETE FROM categories WHERE name = ?", (old_name,))
-                conn.execute("INSERT OR REPLACE INTO categories (name, color, position) VALUES (?, ?, ?)", (name, color, pos))
-                conn.execute("UPDATE feeds SET category = ? WHERE category = ?", (name, old_name))
+                collision = conn.execute(
+                    "SELECT name FROM categories WHERE LOWER(name) = LOWER(?) AND name != ?",
+                    (name, old_name),
+                ).fetchone()
+                if collision:
+                    # Only update color/re-assign feeds cleanly without silently replacing another category
+                    conn.execute("UPDATE categories SET color = ? WHERE name = ?", (color, old_name))
+                else:
+                    row = conn.execute("SELECT position FROM categories WHERE name = ?", (old_name,)).fetchone()
+                    pos = row["position"] if row else 0
+                    conn.execute("DELETE FROM categories WHERE name = ?", (old_name,))
+                    conn.execute("INSERT INTO categories (name, color, position) VALUES (?, ?, ?)", (name, color, pos))
+                    conn.execute("UPDATE feeds SET category = ? WHERE LOWER(category) = LOWER(?)", (name, old_name))
             else:
                 conn.execute("UPDATE categories SET color = ? WHERE name = ?", (color, old_name))
     return RedirectResponse("/feeds", status_code=303)

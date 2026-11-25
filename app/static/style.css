@@ -2,6 +2,7 @@
   --bg: #14161b;
   --bg-elevated: #1c1f26;
   --bg-card: #21242c;
+  --bg-input: rgba(255, 255, 255, 0.08);
   --border: #2f333d;
   --text: #e6e6e6;
   --text-dim: #9aa0ab;
@@ -601,6 +602,32 @@ button.danger:hover { border-color: var(--danger); color: var(--danger); }
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   padding-top: 12px;
+}
+
+@media (max-width: 1200px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+  .topbar {
+    grid-template-columns: auto 1fr auto;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .search-input {
+    width: 140px;
+  }
 }
 
 .card {

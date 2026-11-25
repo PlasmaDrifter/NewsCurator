@@ -47,21 +47,21 @@
 <div class="controls">
   <div class="cat-buttons" style="position: relative;">
     <div class="cat-sliding-pill" id="cat-sliding-pill" aria-hidden="true" style="position: absolute; top: 0; left: 0; pointer-events: none; height: 28px; border-radius: 6px; z-index: 1; opacity: 0; box-sizing: border-box;"></div>
-    <a href="/?category=all&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
+    <a href="/?category=all&source={{ current_source|urlencode }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
        class="cat-btn cat-btn-all {% if current_category == 'all' %}active{% endif %}"
        data-cat="all"
        onclick="selectCategory('all', this, event)">All</a>
     {% for c in categories %}
-    <a href="/?category={{ c.name|urlencode }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
+    <a href="/?category={{ c.name|urlencode }}&source={{ current_source|urlencode }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
        class="cat-btn cat-btn-{{ c.name|css_class }} {% if current_category == c.name %}active{% endif %}"
        data-cat="{{ c.name }}"
-       onclick="selectCategory('{{ c.name|e }}', this, event)">{{ c.name }}</a>
+       onclick="selectCategory(this.dataset.cat, this, event)">{{ c.name }}</a>
     {% endfor %}
   </div>
 
   <div class="right-controls">
     {% if enable_unread_filter %}
-    <a href="/?category={{ current_category }}&source={{ current_source }}{% if search_query %}&q={{ search_query }}{% endif %}{% if not is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
+    <a href="/?category={{ current_category|urlencode }}&source={{ current_source|urlencode }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if not is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}"
        class="unread-filter-btn {% if is_unread_view %}active{% endif %} {% if unread_icon_only %}icon-only{% endif %}"
        title="{% if is_unread_view %}Showing unread only (click to show all){% else %}Filter to unread articles{% endif %}">
       <span class="unread-icon">◎</span>{% if not unread_icon_only %} <span class="unread-label">Unread</span>{% endif %}
@@ -72,7 +72,7 @@
     </button>
     {% endif %}
 
-    <select name="source" onchange="window.location='/?category={{ current_category }}&q={{ search_query }}{% if is_unread_view %}&unread=1{% endif %}{% if is_bookmarked_view %}&bookmarked=1{% endif %}{% if is_history_view %}&history=1{% endif %}&source='+this.value">
+    <select name="source" onchange="handleSourceChange(this.value)">
       <option value="all" {% if current_source == "all" %}selected{% endif %}>All sources</option>
       {% for f in feeds %}
       <option value="{{ f.id }}" {% if current_source == f.id|string %}selected{% endif %}>{{ f.name }}</option>
@@ -137,6 +137,8 @@
 
 <script>
 let currentOffset = {{ initial_count }};
+let nextCursorTs = {{ next_cursor_ts | tojson }};
+let nextCursorId = {{ next_cursor_id | tojson }};
 let isLoading = false;
 let hasMoreArticles = {{ has_more | tojson }};
 let currentCategory = {{ current_category | tojson }};
@@ -151,6 +153,17 @@ const borderSize = {{ border_size | tojson }};
 const threeRowScroll = {{ three_row_scroll | tojson }};
 const stepScrollRows = {{ step_scroll_rows | tojson }};
 const openInNewTab = {{ open_in_new_tab | tojson }};
+
+function handleSourceChange(sourceId) {
+  const params = new URLSearchParams();
+  params.set('category', currentCategory || 'all');
+  params.set('source', sourceId || 'all');
+  if (searchQuery) params.set('q', searchQuery);
+  if (isUnreadView) params.set('unread', '1');
+  if (isBookmarkedView) params.set('bookmarked', '1');
+  if (isHistoryView) params.set('history', '1');
+  window.location.href = '/?' + params.toString();
+}
 
 function handleCardClick(event, card) {
   // If clicked on bookmark button, do not navigate
@@ -322,6 +335,13 @@ function escapeHtml(str) {
 let activeTargetIndex = null;
 let lastWheelTime = 0;
 
+function getGridColumnCount(grid) {
+  if (!grid || grid.classList.contains('table-view')) return 1;
+  const cols = window.getComputedStyle(grid).gridTemplateColumns;
+  if (!cols || cols === 'none') return 4;
+  return Math.max(1, cols.trim().split(/\s+/).length);
+}
+
 function getThreeRowStep() {
   const grid = document.querySelector('.card-grid');
   const rows = (typeof stepScrollRows === 'number' && stepScrollRows > 0) ? stepScrollRows : 3;
@@ -334,7 +354,7 @@ function getThreeRowStep() {
     }
     return rows * 58;
   } else {
-    const targetIdx = rows * 4;
+    const targetIdx = rows * getGridColumnCount(grid);
     if (cards.length > targetIdx) {
       return cards[targetIdx].offsetTop - cards[0].offsetTop;
     }
@@ -347,9 +367,8 @@ function getThreeRowTargetY(targetIndex) {
   const grid = document.querySelector('.card-grid');
   const rows = (typeof stepScrollRows === 'number' && stepScrollRows > 0) ? stepScrollRows : 3;
   if (!grid) return targetIndex * rows * 256;
-  const isTable = grid.classList.contains('table-view');
   const cards = grid.querySelectorAll('.card');
-  const cardsPerRow = isTable ? 1 : 4;
+  const cardsPerRow = getGridColumnCount(grid);
   const targetCardIndex = targetIndex * rows * cardsPerRow;
   
   if (cards.length > 0 && cards[0]) {
@@ -420,6 +439,10 @@ async function loadMoreArticles() {
       offset: currentOffset,
       limit: 60
     });
+    if (nextCursorTs && nextCursorId !== null && nextCursorId !== undefined) {
+      params.set('cursor_ts', nextCursorTs);
+      params.set('cursor_id', nextCursorId);
+    }
     const res = await fetch(`/api/articles?${params.toString()}`);
     const data = await res.json();
     
@@ -430,12 +453,14 @@ async function loadMoreArticles() {
         grid.appendChild(article);
       });
       currentOffset = data.offset;
+      nextCursorTs = data.next_cursor_ts || '';
+      nextCursorId = data.next_cursor_id ?? null;
     }
 
     hasMoreArticles = data.has_more;
     const sentinel = document.getElementById('infinite-scroll-sentinel');
     if (sentinel) {
-      sentinel.style.minHeight = hasMoreArticles ? '80vh' : '0px';
+      sentinel.style.minHeight = hasMoreArticles ? '1px' : '0px';
     }
 
     if (activeTargetIndex !== null && (Date.now() - lastWheelTime < 1200)) {
@@ -483,16 +508,8 @@ function toggleViewMode() {
   applyViewMode(newMode);
 }
 
-function handleRefreshSubmit(form) {
-  const btn = form.querySelector('.refresh-btn');
-  const text = form.querySelector('.refresh-text');
-  if (btn) {
-    btn.classList.add('refreshing');
-  }
-  if (text) {
-    text.textContent = 'Refreshing...';
-  }
-}
+// Apply saved view mode synchronously to avoid Grid -> Table flash on load
+applyViewMode(localStorage.getItem('newscurator_view_mode') || 'grid');
 
 function getButtonColors(btn) {
   if (!btn) return { bg: 'var(--text)', border: 'var(--text)' };
@@ -522,7 +539,7 @@ function setPillPosition(btn, animate = true) {
   }
 }
 
-async function selectCategory(catName, btn, event) {
+async function selectCategory(catName, btn, event, pushHistory = true) {
   if (event) {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) {
       return;
@@ -541,15 +558,13 @@ async function selectCategory(catName, btn, event) {
   currentCategory = catName;
 
   // Update browser URL
-  try {
-    const url = new URL(window.location.href);
-    if (catName === 'all') {
-      url.searchParams.set('category', 'all');
-    } else {
+  if (pushHistory) {
+    try {
+      const url = new URL(window.location.href);
       url.searchParams.set('category', catName);
-    }
-    window.history.pushState({ category: catName }, '', url.toString());
-  } catch (e) {}
+      window.history.pushState({ category: catName }, '', url.toString());
+    } catch (e) {}
+  }
 
   // Update other controls on page
   const unreadBtn = document.querySelector('.unread-filter-btn');
@@ -559,10 +574,6 @@ async function selectCategory(catName, btn, event) {
       uUrl.searchParams.set('category', catName);
       unreadBtn.href = uUrl.pathname + uUrl.search;
     } catch (e) {}
-  }
-  const sourceSelect = document.querySelector('select[name="source"]');
-  if (sourceSelect) {
-    sourceSelect.setAttribute('onchange', `window.location='/?category=${encodeURIComponent(catName)}&q=${encodeURIComponent(searchQuery || '')}${isUnreadView ? '&unread=1' : ''}${isBookmarkedView ? '&bookmarked=1' : ''}${isHistoryView ? '&history=1' : ''}&source='+this.value`);
   }
   const refreshInput = document.querySelector('input[name="redirect_to"]');
   if (refreshInput) {
@@ -602,10 +613,12 @@ async function selectCategory(catName, btn, event) {
     }
 
     currentOffset = data.offset;
+    nextCursorTs = data.next_cursor_ts || '';
+    nextCursorId = data.next_cursor_id ?? null;
     hasMoreArticles = data.has_more;
     const sentinel = document.getElementById('infinite-scroll-sentinel');
     if (sentinel) {
-      sentinel.style.minHeight = hasMoreArticles ? '80vh' : '0px';
+      sentinel.style.minHeight = hasMoreArticles ? '1px' : '0px';
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -656,9 +669,10 @@ function initSlidingPill() {
   window.addEventListener('popstate', function(e) {
     const url = new URL(window.location.href);
     const cat = url.searchParams.get('category') || 'all';
-    const targetBtn = container.querySelector(`[data-cat="${cat}"]`) || container.querySelector('.cat-btn-all');
+    const escapedCat = (window.CSS && CSS.escape) ? CSS.escape(cat) : cat.replace(/["\\]/g, '\\$&');
+    const targetBtn = container.querySelector(`[data-cat="${escapedCat}"]`) || container.querySelector('.cat-btn-all');
     if (targetBtn) {
-      selectCategory(cat, targetBtn);
+      selectCategory(cat, targetBtn, null, false);
     }
   });
 }
@@ -669,10 +683,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const savedMode = localStorage.getItem('newscurator_view_mode') || 'grid';
   applyViewMode(savedMode);
 
-  // Dynamic loading on scroll with generous prefetch margin and scroll cushion
+  // Dynamic loading on scroll with generous prefetch margin
   const sentinel = document.getElementById('infinite-scroll-sentinel');
   if (sentinel && hasMoreArticles) {
-    sentinel.style.minHeight = '80vh';
+    sentinel.style.minHeight = '1px';
   }
 
   if (sentinel && window.IntersectionObserver) {

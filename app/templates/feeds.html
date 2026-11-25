@@ -271,9 +271,9 @@
             </div>
             <div class="setting-item-desc">
               {% if check_for_updates %}
-                Automatically check GitHub releases (Current: {{ app_version|default('v0.8.7') }})
+                Automatically check GitHub releases (Current: {{ app_version|default('v0.8.8') }})
               {% else %}
-                Update checks disabled (Current: {{ app_version|default('v0.8.7') }})
+                Update checks disabled (Current: {{ app_version|default('v0.8.8') }})
               {% endif %}
             </div>
           </div>
@@ -408,7 +408,7 @@
               <span class="chip-drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
               <span class="chip-label">{{ c.name }}</span>
               <button type="button" 
-                      onclick="openCategoryModal('{{ c.name|escape }}', '{{ c.color }}', {{ c.feed_count }})" 
+                      onclick="openCategoryModalFromChip(this)" 
                       class="chip-edit-btn" 
                       title="Edit {{ c.name }}">&#9998;</button>
             </div>
@@ -463,7 +463,7 @@
             </td>
             <td class="article-count {% if f.article_count == 0 %}zero{% endif %}">
               {{ f.article_count }}
-              <span style="font-size: 0.8rem; color: {% if f.last_fetched|is_older_than_day %}var(--danger){% else %}var(--text-dim){% endif %}; margin-left: 6px; font-weight: normal; font-style: italic;">({{ f.last_fetched|format_time_ago }})</span>
+              <span style="font-size: 0.8rem; color: {% if f.enabled and f.last_fetched|is_older_than_day %}var(--danger){% else %}var(--text-dim){% endif %}; margin-left: 6px; font-weight: normal; font-style: italic;">({{ f.last_fetched|format_time_ago }})</span>
             </td>
             <td class="col-enabled">
               <div class="view-mode-{{ f.id }}" style="display: flex; align-items: center;">
@@ -926,12 +926,17 @@ function handleHexInput(val) {
   }
 }
 
+function openCategoryModalFromChip(btn) {
+  const chip = btn ? btn.closest('.category-chip') : null;
+  if (!chip) return;
+  openCategoryModal(chip.dataset.name, chip.dataset.color, Number(chip.dataset.feeds || 0));
+}
+
 function openCategoryModal(name, color, feedCount) {
   activeEditCategory = name;
   const modal = document.getElementById('category-edit-modal');
   const nameInput = document.getElementById('modal-cat-name');
   const colorInput = document.getElementById('modal-cat-color');
-  const hexInput = document.getElementById('modal-cat-color-hex');
   const preview = document.getElementById('modal-cat-preview');
   const feedsText = document.getElementById('modal-cat-feeds-text');
   const deleteBtn = document.getElementById('modal-delete-btn');
@@ -943,7 +948,6 @@ function openCategoryModal(name, color, feedCount) {
 
   nameInput.value = name;
   colorInput.value = color || '#5b8cff';
-  hexInput.value = color || '#5b8cff';
 
   preview.textContent = name;
   updateModalPreviewColor(color || '#5b8cff');
@@ -1276,7 +1280,7 @@ function renderSavedThemeCard(themeObj) {
       <span class="theme-swatch" style="background: ${themeObj.colors.accent};"></span>
     </div>
     <div class="theme-preset-info">
-      <span class="theme-preset-name">${themeObj.name}</span>
+      <span class="theme-preset-name">${escapeHtml(themeObj.name)}</span>
       <span class="theme-preset-check">✓</span>
     </div>
     <button type="button" class="theme-delete-btn" onclick="deleteCustomTheme(${themeObj.db_id}, event)" title="Delete saved theme">&times;</button>
@@ -1350,7 +1354,7 @@ function submitSaveThemeInline(e) {
 
       const dynLink = document.querySelector('link[href*="/dynamic.css"]');
       if (dynLink && data.theme_version) {
-        dynLink.href = '/dynamic.css?v=0.5&tv=' + data.theme_version;
+        dynLink.href = '/dynamic.css?v={{ border_opacity }}&tv=' + data.theme_version;
       }
 
       if (saveBtn) {
@@ -1431,7 +1435,7 @@ function deleteCustomTheme(dbId, event) {
 
         const dynLink = document.querySelector('link[href*="/dynamic.css"]');
         if (dynLink && data.theme_version) {
-          dynLink.href = '/dynamic.css?v=0.5&tv=' + data.theme_version;
+          dynLink.href = '/dynamic.css?v={{ border_opacity }}&tv=' + data.theme_version;
         }
       }
 
