@@ -14,6 +14,8 @@ import urllib.request
 import urllib.error
 import email.utils
 import concurrent.futures
+import xml.etree.ElementTree as ET
+import xml.parsers.expat
 from urllib.parse import urlsplit, urlunsplit
 import collections
 import subprocess
@@ -1805,6 +1807,68 @@ def update_favicon(favicon: str = Form(...)):
     return RedirectResponse("/feeds", status_code=303)
 
 
+_ALLOWED_SVG_TAGS = frozenset({
+    "svg", "g", "defs", "title", "desc", "path", "rect", "circle", "ellipse",
+    "line", "polyline", "polygon", "lineargradient", "radialgradient",
+    "stop", "clippath", "mask", "symbol", "pattern",
+})
+
+
+def _svg_local_name(tag: str) -> str:
+    """Return lowercase XML local name without namespace prefix."""
+    if "}" in tag:
+        return tag.split("}", 1)[1].lower()
+    return tag.lower()
+
+
+def _is_safe_svg_attr(attr_name: str, attr_val: str) -> bool:
+    """Validate SVG attribute name and value to strip event handlers and script URIs."""
+    local_attr = _svg_local_name(attr_name)
+    if local_attr.startswith("on"):
+        return False
+    compact_val = "".join(attr_val.lower().split())
+    if local_attr in ("href", "src"):
+        return compact_val.startswith("#")
+    if "javascript:" in compact_val or "vbscript:" in compact_val or "data:text/html" in compact_val:
+        return False
+    if local_attr == "style" and ("expression(" in compact_val or "@import" in compact_val or "url(http" in compact_val):
+        return False
+    return True
+
+
+def _sanitize_svg(content: bytes) -> bytes:
+    """Parse and sanitize an uploaded SVG using an XML parser and element allowlist."""
+    # Reject entity declarations and external entity references upfront using expat
+    parser = xml.parsers.expat.ParserCreate()
+    def _reject_entity(*_args, **_kwargs):
+        raise ValueError("Entity declarations are not permitted in SVG uploads")
+    parser.EntityDeclHandler = _reject_entity
+    parser.UnparsedEntityDeclHandler = _reject_entity
+    parser.ExternalEntityRefHandler = _reject_entity
+    parser.Parse(content, True)
+
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+    ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+    root = ET.fromstring(content)
+    if _svg_local_name(root.tag) != "svg":
+        raise ValueError("Root element is not <svg>")
+
+    def _clean_elem(elem):
+        kept_children = []
+        for child in list(elem):
+            if _svg_local_name(child.tag) in _ALLOWED_SVG_TAGS:
+                _clean_elem(child)
+                kept_children.append(child)
+        elem[:] = kept_children
+
+        for k in list(elem.attrib.keys()):
+            if not _is_safe_svg_attr(k, elem.attrib[k]):
+                del elem.attrib[k]
+
+    _clean_elem(root)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=False)
+
+
 @app.post("/settings/upload-favicon")
 async def upload_favicon(file: UploadFile = File(...)):
     if not file.filename:
@@ -1824,10 +1888,7 @@ async def upload_favicon(file: UploadFile = File(...)):
     content = await file.read()
     if ext == ".svg":
         try:
-            svg_text = content.decode("utf-8", errors="ignore")
-            svg_text = re.sub(r"<script\b[^>]*>.*?</script>", "", svg_text, flags=re.IGNORECASE | re.DOTALL)
-            svg_text = re.sub(r"\son[a-z]+\s*=\s*(['\"]).*?\1", "", svg_text, flags=re.IGNORECASE | re.DOTALL)
-            content = svg_text.encode("utf-8")
+            content = _sanitize_svg(content)
         except Exception:
             return RedirectResponse("/feeds", status_code=303)
     with open(dest_path, "wb") as f:
